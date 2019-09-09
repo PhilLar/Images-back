@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
+	_ "github.com/lib/pq"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,26 +15,47 @@ import (
 )
 
 var port int
+var db string
 
 func init() {
-	defPort := 5000
+	defPort := 8080
+	var defDB string
 	if portVar, ok := os.LookupEnv("PORT"); ok {
 		if portValue, err := strconv.Atoi(portVar); err == nil {
 			defPort = portValue
 		}
 	}
+	if dbVar, ok := os.LookupEnv("DATABASE_URL"); ok {
+		defDB = dbVar
+	}
 	flag.IntVar(&port, "port", defPort, "port to listen on")
+	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
 
 func main() {
 	flag.Parse()
 	e := echo.New()
-	e.Static("/static", "static")
 	e.Logger.SetLevel(log.INFO)
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
+
+	dbPsql, err := sql.Open("postgres", db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dbPsql.Close()
+
+	e.GET("dbTest", func(c echo.Context) error {
+		err = dbPsql.Ping()
+		if err != nil {
+			panic(err)
+		}
+		log.Print("DB OK!")
+		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
 	})
-	e.File("/index", "static/index.html")
+
+	e.Static("/", "static")
+	e.Static("/files", "files")
+	// the line below loads only one file - bad
+	//e.File("/index", "static/index.html")
 
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(port)); err != nil {
@@ -50,4 +73,5 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
+
 }
