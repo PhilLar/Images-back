@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"flag"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
+	_ "github.com/lib/pq"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
-	_ "github.com/lib/pq"
-	"database/sql"
 )
 
 var port int
@@ -37,32 +37,19 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	url := db
+	dbPsql, err := sql.Open("postgres", url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dbPsql.Close()
 
 	e.GET("dbTest", func(c echo.Context) error {
-		//connStr := "user=images password=images_go dbname=imagesapp sslmode=disable"
-		url := db
-		dbPsql, err := sql.Open("postgres", url)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer dbPsql.Close()
-
 		err = dbPsql.Ping()
 		if err != nil {
 			panic(err)
 		}
 		log.Print("DB OK!")
-		_, err = dbPsql.Exec("CREATE TABLE IF NOT EXISTS images_table3 (" +
-			"id serial PRIMARY KEY," +
-			"size integer NOT NULL," +
-			"log VARCHAR (50) NOT NULL" +
-			")")
-		if err != nil {
-			panic(err)
-		}
 		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
 	})
 
@@ -87,6 +74,5 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
-
 
 }
