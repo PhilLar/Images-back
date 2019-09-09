@@ -37,8 +37,7 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	url := db
-	dbPsql, err := sql.Open("postgres", url)
+	dbPsql, err := sql.Open("postgres", db)
 	if err != nil {
 		log.Fatal(err)
 	}
