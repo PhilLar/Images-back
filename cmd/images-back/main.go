@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
@@ -42,6 +45,25 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbPsql.Close()
+
+	//dot, err := dotsql.LoadFromFile("migrations/20190909154444_image_files_table.up.sql")
+	//_, err = dot.Exec(dbPsql, "create-users-table")
+
+	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer driver.Close()
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://migrations",
+		"postgres", driver)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = m.Up()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	e.GET("dbTest", func(c echo.Context) error {
 		err = dbPsql.Ping()
