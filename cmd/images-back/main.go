@@ -4,18 +4,27 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	//"path/filepath"
+
+	//"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
 )
+
+type imageFile struct {
+	imgTitle string `json:"title"`
+	imgURL   string `json:"url"`
+}
 
 var port int
 var db string
@@ -74,8 +83,11 @@ func main() {
 		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
 	})
 
+	e.POST("files", upload)
+	//e.GET("test", testJSON)
+
 	e.Static("/", "static")
-	e.Static("/files", "files")
+	//e.Static("/files", "files")
 	// the line below loads only one file - bad
 	//e.File("/index", "static/index.html")
 
@@ -95,5 +107,67 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
-
 }
+
+func upload(c echo.Context) error {
+	// Read form fields
+	imgPath := c.FormValue("file") //name
+	imgTitle := c.FormValue("title") // email
+
+
+	//-----------
+	// Read file
+	//-----------
+
+	// Source
+	file, err := c.FormFile("file")
+	if err != nil {
+		log.Print(err)
+	}
+	src, err := file.Open()
+	if err != nil {
+		log.Print(err)
+	}
+	defer src.Close()
+
+	// Destination
+	dst, err := os.Create("files/"+file.Filename)
+	if err != nil {
+		log.Print(err)
+	}
+	defer dst.Close()
+
+	// Copy
+	if _, err = io.Copy(dst, src); err != nil {
+		log.Print(err)
+	}
+
+
+	//filedirectory := filepath.Dir(file.Filename)
+	//thepath, err := filepath.Abs(filedirectory)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	//log.Print(thepath)
+	//log.Print(filedirectory)
+
+	log.Print(imgTitle)
+	log.Print(file.Filename)
+	outJSON := &imageFile{
+		imgTitle: imgTitle,
+		imgURL:   imgPath,
+	}
+	return c.JSON(http.StatusOK, outJSON)
+}
+
+//func testJSON(c echo.Context) error {
+//	// Read form fields
+//	outJSON := &imageFile{
+//		imgTitle: "imgTitle",
+//		imgURL:   "imgPath",
+//	}
+//	return c.JSON(http.StatusOK, outJSON)
+//}
+
+
