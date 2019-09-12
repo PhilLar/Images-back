@@ -5,18 +5,17 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"github.com/PhilLar/Images-back/models"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
-	"io"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -42,12 +41,9 @@ func init() {
 	flag.IntVar(&port, "port", defPort, "port to listen on")
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
-
-//type store struct{
-//	dbPsql	*sql.DB
-//}
-//
-//func (s *store) insertFile
+type Env struct {
+	db *sql.DB
+}
 
 func main() {
 	flag.Parse()
@@ -59,6 +55,12 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbPsql.Close()
+
+	db, err := models.NewDB(db)
+	if err != nil {
+		log.Panic(err)
+	}
+	env := &Env{db: db}
 
 	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
 	if err != nil {
@@ -76,16 +78,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	e.GET("dbTest", func(c echo.Context) error {
-		err = dbPsql.Ping()
-		if err != nil {
-			panic(err)
-		}
-		log.Print("DB OK!")
-		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
-	})
+	//e.GET("dbTest", func(c echo.Context) error {
+	//	err = dbPsql.Ping()
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	log.Print("DB OK!")
+	//	return c.String(http.StatusOK, "DB_TABLE images CREATED!")
+	//})
 
-	e.POST("files", uploadHandler(dbPsql))
+	e.POST("files", env.uploadHandler(dbPsql))
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
@@ -107,12 +109,10 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 }
-func uploadHandler(db *sql.DB) echo.HandlerFunc {
+func (env *Env) uploadHandler(db *sql.DB) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		imgTitle := c.FormValue("title") //name
-
-		var id int
-		err := db.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&id)
+		ID, err := models.InsertImage(env.db, imgTitle)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -121,36 +121,18 @@ func uploadHandler(db *sql.DB) echo.HandlerFunc {
 		if err != nil {
 			log.Print(err)
 		}
-		log.Print(file.Filename)
-		src, err := file.Open()
-		if err != nil {
-			log.Print(err)
-		}
-		defer src.Close()
-
-		imgNewTitle := strconv.Itoa(id) + ".jpg"
-		dst, err := os.Create("files/" + imgNewTitle)
-		if err != nil {
-			log.Print(err)
-		}
-		defer dst.Close()
-
-		// Copy
-		if _, err = io.Copy(dst, src); err != nil {
-			log.Print(err)
-		}
+		imgNewTitle, err := models.SaveImage(file, ID)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		imgExt := strings.LastIndex(file.Filename, ".")
-		imgURL := c.Request().Host + c.Request().URL.String() + "/" + strconv.Itoa(id) + file.Filename[imgExt:]
+		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
 		outJSON := &imageFile{
 			ImgTitle: imgTitle,
 			ImgURL:   imgURL,
 		}
-		respHeadder := c.Response().Header()
-		for i, j := range respHeadder {
+		respHeader := c.Response().Header()
+		for i, j := range respHeader {
 			fmt.Println(i, j)
 		}
 		return c.JSON(http.StatusOK, outJSON)
