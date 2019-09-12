@@ -47,13 +47,13 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	db, err := models.NewDB(db)
+	dbPsql, err := models.NewDB(db)
 	if err != nil {
 		log.Panic(err)
 	}
-	defer db.Close()
+	defer dbPsql.Close()
 
-	env := &Env{db: db}
+	env := &Env{db: dbPsql}
 
 	e.POST("files", env.uploadHandler())
 
