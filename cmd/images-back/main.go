@@ -16,8 +16,8 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
 
 type imageFile struct {
@@ -60,7 +60,6 @@ func main() {
 	}
 	defer dbPsql.Close()
 
-
 	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
 	if err != nil {
 		log.Fatal(err)
@@ -86,57 +85,10 @@ func main() {
 		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
 	})
 
-	e.POST("files", func(c echo.Context) error {
-		imgTitle := c.FormValue("title") //name
-
-		var id int
-		err := dbPsql.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&id)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		file, err := c.FormFile("file")
-		if err != nil {
-			log.Print(err)
-		}
-		log.Print(file.Filename)
-		src, err := file.Open()
-		if err != nil {
-			log.Print(err)
-		}
-		defer src.Close()
-
-		imgNewTitle := strconv.Itoa(id)+".jpg"
-		dst, err := os.Create("files/"+imgNewTitle)
-		if err != nil {
-			log.Print(err)
-		}
-		defer dst.Close()
-
-		// Copy
-		if _, err = io.Copy(dst, src); err != nil {
-			log.Print(err)
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		imgExt := strings.LastIndex(file.Filename, ".")
-
-		imgURL := c.Request().Host + c.Request().URL.String() + strconv.Itoa(id) + "/" + file.Filename[imgExt:]
-		outJSON := &imageFile{
-			ImgTitle: imgTitle,
-			ImgURL:   imgURL,
-		}
-		respHeadder := c.Response().Header()
-		for i, j := range respHeadder {
-			fmt.Println(i, j)
-		}
-		return c.JSON(http.StatusOK, outJSON)
-	})
+	e.POST("files", uploadHandler(dbPsql))
 
 	e.Static("/", "static")
-
+	e.Static("/files", "files")
 
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(port)); err != nil {
@@ -155,52 +107,52 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 }
+func uploadHandler(db *sql.DB) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		imgTitle := c.FormValue("title") //name
 
-//func upload(c echo.Context) error {
-//	// Read form fields
-//	imgTitle := c.FormValue("title") //name
-//
-//	stmt, err := dbPsql.Prepare("INSERT INTO images VALUES(?,?,?,?,?)")
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	_, err = stmt.Exec(blog.Id,blog.Title,blog.Date,desc,blog.Author)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	file, err := c.FormFile("file")
-//	if err != nil {
-//		log.Print(err)
-//	}
-//	src, err := file.Open()
-//	if err != nil {
-//		log.Print(err)
-//	}
-//	defer src.Close()
-//
-//	// Destination
-//	dst, err := os.Create("files/"+file.Filename)
-//	if err != nil {
-//		log.Print(err)
-//	}
-//	defer dst.Close()
-//
-//	// Copy
-//	if _, err = io.Copy(dst, src); err != nil {
-//		log.Print(err)
-//	}
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//
-//	outJSON := &imageFile{
-//		ImgTitle: imgTitle,
-//		ImgURL:   "under development",
-//	}
-//	return c.JSON(http.StatusOK, outJSON)
-//}
-//
-//
-//
+		var id int
+		err := db.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		file, err := c.FormFile("file")
+		if err != nil {
+			log.Print(err)
+		}
+		log.Print(file.Filename)
+		src, err := file.Open()
+		if err != nil {
+			log.Print(err)
+		}
+		defer src.Close()
+
+		imgNewTitle := strconv.Itoa(id) + ".jpg"
+		dst, err := os.Create("files/" + imgNewTitle)
+		if err != nil {
+			log.Print(err)
+		}
+		defer dst.Close()
+
+		// Copy
+		if _, err = io.Copy(dst, src); err != nil {
+			log.Print(err)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		imgExt := strings.LastIndex(file.Filename, ".")
+		imgURL := c.Request().Host + c.Request().URL.String() + "/" + strconv.Itoa(id) + file.Filename[imgExt:]
+		outJSON := &imageFile{
+			ImgTitle: imgTitle,
+			ImgURL:   imgURL,
+		}
+		respHeadder := c.Response().Header()
+		for i, j := range respHeadder {
+			fmt.Println(i, j)
+		}
+		return c.JSON(http.StatusOK, outJSON)
+	}
+}
