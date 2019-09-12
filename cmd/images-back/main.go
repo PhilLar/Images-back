@@ -4,9 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"fmt"
+	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
@@ -16,6 +15,11 @@ import (
 	"strconv"
 	"time"
 )
+
+type imageFile struct {
+	ImgTitle string `json:"title"`
+	ImgURL   string `json:"url"`
+}
 
 var port int
 var db string
@@ -34,50 +38,27 @@ func init() {
 	flag.IntVar(&port, "port", defPort, "port to listen on")
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
+type Env struct {
+	db *sql.DB
+}
 
 func main() {
 	flag.Parse()
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	dbPsql, err := sql.Open("postgres", db)
+	dbPsql, err := models.NewDB(db)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer dbPsql.Close()
 
-	//dot, err := dotsql.LoadFromFile("migrations/20190909154444_image_files_table.up.sql")
-	//_, err = dot.Exec(dbPsql, "create-users-table")
+	env := &Env{db: dbPsql}
 
-	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer driver.Close()
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"postgres", driver)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
-	}
-
-	e.GET("dbTest", func(c echo.Context) error {
-		err = dbPsql.Ping()
-		if err != nil {
-			panic(err)
-		}
-		log.Print("DB OK!")
-		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
-	})
+	e.POST("files", env.uploadHandler())
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
-	// the line below loads only one file - bad
-	//e.File("/index", "static/index.html")
 
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(port)); err != nil {
@@ -95,5 +76,33 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Fatal(err)
 	}
+}
+func (env *Env) uploadHandler() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		imgTitle := c.FormValue("title") //name
+		ID, err := models.InsertImage(env.db, imgTitle)
+		if err != nil {
+			log.Fatal(err)
+		}
 
+		file, err := c.FormFile("file")
+		if err != nil {
+			log.Print(err)
+		}
+		imgNewTitle, err := models.SaveImage(file, ID)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
+		outJSON := &imageFile{
+			ImgTitle: imgTitle,
+			ImgURL:   imgURL,
+		}
+		respHeader := c.Response().Header()
+		for i, j := range respHeader {
+			fmt.Println(i, j)
+		}
+		return c.JSON(http.StatusOK, outJSON)
+	}
 }

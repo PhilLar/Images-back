@@ -1,4 +1,4 @@
-CREATE TABLE images
+CREATE TABLE IF NOT EXISTS images
 (
   id           BIGSERIAL PRIMARY KEY,
   source_name   TEXT NOT NULL,

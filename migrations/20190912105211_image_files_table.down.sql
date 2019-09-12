@@ -1,0 +1,1 @@
+ALTER table images ADD column stored_name text NOT NULL default '';
