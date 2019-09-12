@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"io"
+	"log"
 	"mime/multipart"
 	"os"
 	"strconv"
@@ -26,6 +27,7 @@ func InsertImage(db *sql.DB, imgTitle string) (int, error) {
 func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
 	src, err := file.Open()
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 	defer src.Close()
@@ -34,12 +36,14 @@ func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
 	imgNewTitle := strconv.Itoa(ID) + file.Filename[imgExt:]
 	dst, err := os.Create("files/" + imgNewTitle)
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 	defer dst.Close()
 
 	// Copy
 	if _, err = io.Copy(dst, src); err != nil {
+		log.Print(err)
 		return "", err
 	}
 

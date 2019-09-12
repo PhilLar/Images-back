@@ -6,9 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/PhilLar/Images-back/models"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
@@ -50,44 +47,15 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	dbPsql, err := sql.Open("postgres", db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer dbPsql.Close()
-
 	db, err := models.NewDB(db)
 	if err != nil {
 		log.Panic(err)
 	}
+	defer models.CloseDB(db)
+
 	env := &Env{db: db}
 
-	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer driver.Close()
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"postgres", driver)
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
-	}
-
-	//e.GET("dbTest", func(c echo.Context) error {
-	//	err = dbPsql.Ping()
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//	log.Print("DB OK!")
-	//	return c.String(http.StatusOK, "DB_TABLE images CREATED!")
-	//})
-
-	e.POST("files", env.uploadHandler(dbPsql))
+	e.POST("files", env.uploadHandler())
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
@@ -109,7 +77,7 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 }
-func (env *Env) uploadHandler(db *sql.DB) echo.HandlerFunc {
+func (env *Env) uploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		imgTitle := c.FormValue("title") //name
 		ID, err := models.InsertImage(env.db, imgTitle)
