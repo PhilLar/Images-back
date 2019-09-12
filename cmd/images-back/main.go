@@ -51,7 +51,7 @@ func main() {
 	if err != nil {
 		log.Panic(err)
 	}
-	defer models.CloseDB(db)
+	defer db.Close()
 
 	env := &Env{db: db}
 

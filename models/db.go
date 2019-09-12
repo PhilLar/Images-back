@@ -40,8 +40,3 @@ func NewDB(dataSourceName string) (*sql.DB, error) {
 	}
 	return db, nil
 }
-
-func CloseDB(db *sql.DB) error {
-	err := db.Close()
-	return err
-}
