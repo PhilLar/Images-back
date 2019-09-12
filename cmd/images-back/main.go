@@ -4,9 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	//"path/filepath"
-
-	//"fmt"
+	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -19,11 +17,12 @@ import (
 	"os/signal"
 	"strconv"
 	"time"
+	"strings"
 )
 
 type imageFile struct {
-	imgTitle string `json:"title"`
-	imgURL   string `json:"url"`
+	ImgTitle string `json:"title"`
+	ImgURL   string `json:"url"`
 }
 
 var port int
@@ -44,6 +43,12 @@ func init() {
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
 
+//type store struct{
+//	dbPsql	*sql.DB
+//}
+//
+//func (s *store) insertFile
+
 func main() {
 	flag.Parse()
 	e := echo.New()
@@ -55,8 +60,6 @@ func main() {
 	}
 	defer dbPsql.Close()
 
-	//dot, err := dotsql.LoadFromFile("migrations/20190909154444_image_files_table.up.sql")
-	//_, err = dot.Exec(dbPsql, "create-users-table")
 
 	driver, err := postgres.WithInstance(dbPsql, &postgres.Config{})
 	if err != nil {
@@ -83,13 +86,57 @@ func main() {
 		return c.String(http.StatusOK, "DB_TABLE images CREATED!")
 	})
 
-	e.POST("files", upload)
-	//e.GET("test", testJSON)
+	e.POST("files", func(c echo.Context) error {
+		imgTitle := c.FormValue("title") //name
+
+		var id int
+		err := dbPsql.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		file, err := c.FormFile("file")
+		if err != nil {
+			log.Print(err)
+		}
+		log.Print(file.Filename)
+		src, err := file.Open()
+		if err != nil {
+			log.Print(err)
+		}
+		defer src.Close()
+
+		imgNewTitle := strconv.Itoa(id)+".jpg"
+		dst, err := os.Create("files/"+imgNewTitle)
+		if err != nil {
+			log.Print(err)
+		}
+		defer dst.Close()
+
+		// Copy
+		if _, err = io.Copy(dst, src); err != nil {
+			log.Print(err)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		imgExt := strings.LastIndex(file.Filename, ".")
+
+		imgURL := c.Request().Host + c.Request().URL.String() + strconv.Itoa(id) + "/" + file.Filename[imgExt:]
+		outJSON := &imageFile{
+			ImgTitle: imgTitle,
+			ImgURL:   imgURL,
+		}
+		respHeadder := c.Response().Header()
+		for i, j := range respHeadder {
+			fmt.Println(i, j)
+		}
+		return c.JSON(http.StatusOK, outJSON)
+	})
 
 	e.Static("/", "static")
-	//e.Static("/files", "files")
-	// the line below loads only one file - bad
-	//e.File("/index", "static/index.html")
+
 
 	go func() {
 		if err := e.Start(":" + strconv.Itoa(port)); err != nil {
@@ -109,65 +156,51 @@ func main() {
 	}
 }
 
-func upload(c echo.Context) error {
-	// Read form fields
-	imgPath := c.FormValue("file") //name
-	imgTitle := c.FormValue("title") // email
-
-
-	//-----------
-	// Read file
-	//-----------
-
-	// Source
-	file, err := c.FormFile("file")
-	if err != nil {
-		log.Print(err)
-	}
-	src, err := file.Open()
-	if err != nil {
-		log.Print(err)
-	}
-	defer src.Close()
-
-	// Destination
-	dst, err := os.Create("files/"+file.Filename)
-	if err != nil {
-		log.Print(err)
-	}
-	defer dst.Close()
-
-	// Copy
-	if _, err = io.Copy(dst, src); err != nil {
-		log.Print(err)
-	}
-
-
-	//filedirectory := filepath.Dir(file.Filename)
-	//thepath, err := filepath.Abs(filedirectory)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	//log.Print(thepath)
-	//log.Print(filedirectory)
-
-	log.Print(imgTitle)
-	log.Print(file.Filename)
-	outJSON := &imageFile{
-		imgTitle: imgTitle,
-		imgURL:   imgPath,
-	}
-	return c.JSON(http.StatusOK, outJSON)
-}
-
-//func testJSON(c echo.Context) error {
+//func upload(c echo.Context) error {
 //	// Read form fields
+//	imgTitle := c.FormValue("title") //name
+//
+//	stmt, err := dbPsql.Prepare("INSERT INTO images VALUES(?,?,?,?,?)")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	_, err = stmt.Exec(blog.Id,blog.Title,blog.Date,desc,blog.Author)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	file, err := c.FormFile("file")
+//	if err != nil {
+//		log.Print(err)
+//	}
+//	src, err := file.Open()
+//	if err != nil {
+//		log.Print(err)
+//	}
+//	defer src.Close()
+//
+//	// Destination
+//	dst, err := os.Create("files/"+file.Filename)
+//	if err != nil {
+//		log.Print(err)
+//	}
+//	defer dst.Close()
+//
+//	// Copy
+//	if _, err = io.Copy(dst, src); err != nil {
+//		log.Print(err)
+//	}
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
 //	outJSON := &imageFile{
-//		imgTitle: "imgTitle",
-//		imgURL:   "imgPath",
+//		ImgTitle: imgTitle,
+//		ImgURL:   "under development",
 //	}
 //	return c.JSON(http.StatusOK, outJSON)
 //}
-
-
+//
+//
+//
