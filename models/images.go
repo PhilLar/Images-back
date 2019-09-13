@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	//"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -12,16 +13,45 @@ import (
 
 type Image struct {
 	ID   		int
-	SourceNAME 	string
+	SourceName 	string
+	StoredName	string
 }
 
-func InsertImage(db *sql.DB, imgTitle string) (int, error) {
+func InsertImage(db *sql.DB, imgTitle, fileName string) (int, error) {
 	var ID int
 	err := db.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
 		return -1, err
 	}
+	imgExt := strings.LastIndex(fileName, ".")
+	imgNewTitle := strconv.Itoa(ID) + fileName[imgExt:]
+	_, err = db.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
+	if err != nil {
+		return -1, err
+	}
 	return ID, nil
+}
+
+func AllImages(db *sql.DB) ([]*Image, error) {
+	rows, err := db.Query("SELECT * FROM images")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	imgs := make([]*Image, 0)
+	for rows.Next() {
+		img := &Image{}
+		err := rows.Scan(&img.ID, &img.SourceName, &img.StoredName)
+		if err != nil {
+			return nil, err
+		}
+		imgs = append(imgs, img)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return imgs, nil
 }
 
 func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
@@ -31,7 +61,8 @@ func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
 		return "", err
 	}
 	defer src.Close()
-
+	//a := src.(os.File)
+	//contentType, err := getFileContentType(*src.(os.File))
 	imgExt := strings.LastIndex(file.Filename, ".")
 	imgNewTitle := strconv.Itoa(ID) + file.Filename[imgExt:]
 	dst, err := os.Create("files/" + imgNewTitle)
@@ -49,4 +80,6 @@ func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
 
 	return imgNewTitle, nil
 }
+
+
 

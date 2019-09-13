@@ -9,10 +9,12 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -56,6 +58,7 @@ func main() {
 	env := &Env{db: dbPsql}
 
 	e.POST("files", env.uploadHandler())
+	e.GET("images", env.listImagesHandler())
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
@@ -79,16 +82,20 @@ func main() {
 }
 func (env *Env) uploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		imgTitle := c.FormValue("title") //name
-		ID, err := models.InsertImage(env.db, imgTitle)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Print(err)
 		}
+
+		if getFileContentType(file) != "image" {
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+		}
+		imgTitle := c.FormValue("title") //name
+		ID, err := models.InsertImage(env.db, imgTitle, file.Filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		imgNewTitle, err := models.SaveImage(file, ID)
 		if err != nil {
 			log.Fatal(err)
@@ -105,4 +112,31 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusOK, outJSON)
 	}
+}
+
+func (env *Env) listImagesHandler() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		imgs, err := models.AllImages(env.db)
+		if err != nil {
+			http.Error(c.Response(), http.StatusText(500), 500)
+			log.Fatal(err)
+		}
+		outImgs := make([]*imageFile, 0)
+		for _, i := range imgs {
+			imgURL := c.Request().Host + c.Request().URL.String() + "/" + i.StoredName
+			outImgs = append(outImgs, &imageFile{
+				ImgTitle:	i.SourceName,
+				ImgURL:		imgURL,
+			})
+		}
+		return c.JSONPretty(http.StatusOK, outImgs, "  ")
+	}
+}
+
+func getFileContentType(file *multipart.FileHeader) string {
+
+	contentType := file.Header["Content-Type"][0]
+	imgExt := strings.Index(contentType, "/")
+
+	return contentType[:imgExt]
 }
