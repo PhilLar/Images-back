@@ -51,7 +51,7 @@ func main() {
 
 	dbPsql, err := models.NewDB(db)
 	if err != nil {
-		log.Panic(err)
+		log.Print(err)
 	}
 	defer dbPsql.Close()
 
@@ -77,7 +77,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		e.Logger.Fatal(err)
+		e.Logger.Print(err)
 	}
 }
 func (env *Env) uploadHandler() echo.HandlerFunc {
@@ -85,6 +85,7 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Print(err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 
 		if getFileContentType(file) != "image" {
@@ -93,12 +94,14 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 		imgTitle := c.FormValue("title") //name
 		ID, err := models.InsertImage(env.db, imgTitle, file.Filename)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 
 		imgNewTitle, err := models.SaveImage(file, ID)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 
 		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
@@ -119,11 +122,12 @@ func (env *Env) listImagesHandler() echo.HandlerFunc {
 		imgs, err := models.AllImages(env.db)
 		if err != nil {
 			http.Error(c.Response(), http.StatusText(500), 500)
-			log.Fatal(err)
+			log.Print(err)
+			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 		}
 		outImgs := make([]*imageFile, 0)
 		for _, i := range imgs {
-			imgURL := c.Request().Host + c.Request().URL.String() + "/" + i.StoredName
+			imgURL := c.Request().Host + "/files" + "/" + i.StoredName
 			outImgs = append(outImgs, &imageFile{
 				ImgTitle:	i.SourceName,
 				ImgURL:		imgURL,
