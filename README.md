@@ -1,7 +1,11 @@
-imgase-back
+Images-back
 =====
 
 `images-back` is the webservice to store and process images.
+
+Link to the web-service
+------------
+https://images-back2.herokuapp.com/
 
 Installation
 ------------
@@ -29,6 +33,14 @@ You can run it:
 ```sh
 export DATABASE_URL="postgres://images:secret@localhost/imagesapp?sslmode=disable"
 images-back
+```
+to add image to db:
+```sh
+curl -F 'file=@pic.jpg' -F 'title=mytitle' https://images-back2.herokuapp.com/files
+```
+to list all images in db:
+```sh
+curl https://images-back2.herokuapp.com/images
 ```
 
 Contribute
