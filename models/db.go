@@ -12,17 +12,17 @@ import (
 func NewDB(dataSourceName string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 	if err = db.Ping(); err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 	//defer driver.Close()
@@ -30,12 +30,12 @@ func NewDB(dataSourceName string) (*sql.DB, error) {
 		"file://migrations",
 		"postgres", driver)
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
+		log.Print(err)
 		return nil, err
 	}
 	return db, nil
