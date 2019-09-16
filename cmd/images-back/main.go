@@ -84,6 +84,7 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		file, err := c.FormFile("file")
 		if err != nil {
+			log.Print("HOW2")
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
