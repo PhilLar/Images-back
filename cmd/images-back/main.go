@@ -4,24 +4,22 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
+	//"fmt"
+	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
-	"mime/multipart"
-	"net/http"
+	//"mime/multipart"
+	//"net/http"
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
+	//"strings"
 	"time"
 )
 
-type imageFile struct {
-	ImgTitle string `json:"title"`
-	ImgURL   string `json:"url"`
-}
+
 
 var port int
 var db string
@@ -55,10 +53,10 @@ func main() {
 	}
 	defer dbPsql.Close()
 
-	env := &Env{db: dbPsql}
+	env := &handlers.Env{DB: dbPsql}
 
-	e.POST("files", env.uploadHandler())
-	e.GET("images", env.listImagesHandler())
+	e.POST("files", env.UploadHandler())
+	e.GET("images", env.ListImagesHandler())
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
@@ -79,73 +77,4 @@ func main() {
 	if err := e.Shutdown(ctx); err != nil {
 		e.Logger.Print(err)
 	}
-}
-func (env *Env) uploadHandler() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		file, err := c.FormFile("file")
-		if err != nil {
-			log.Print("HOW2")
-			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
-		}
-		fileContent := getFileContentType(file)
-		a:=fmt.Sprintf("%T", fileContent)
-		log.Print(fileContent, a)
-		if fileContent != "image" {
-			log.Print("HOW")
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
-		}
-
-		imgTitle := c.FormValue("title") //name
-		ID, err := models.InsertImage(env.db, imgTitle, file.Filename)
-		if err != nil {
-			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
-		}
-
-		imgNewTitle, err := models.SaveImage(file, ID)
-		if err != nil {
-			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
-		}
-
-		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
-		outJSON := &imageFile{
-			ImgTitle: imgTitle,
-			ImgURL:   imgURL,
-		}
-		respHeader := c.Response().Header()
-		for i, j := range respHeader {
-			fmt.Println(i, j)
-		}
-		return c.JSON(http.StatusOK, outJSON)
-	}
-}
-
-func (env *Env) listImagesHandler() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		imgs, err := models.AllImages(env.db)
-		if err != nil {
-			http.Error(c.Response(), http.StatusText(500), 500)
-			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
-		}
-		outImgs := make([]*imageFile, 0)
-		for _, i := range imgs {
-			imgURL := c.Request().Host + "/files" + "/" + i.StoredName
-			outImgs = append(outImgs, &imageFile{
-				ImgTitle:	i.SourceName,
-				ImgURL:		imgURL,
-			})
-		}
-		return c.JSONPretty(http.StatusOK, outImgs, "  ")
-	}
-}
-
-func getFileContentType(file *multipart.FileHeader) string {
-
-	contentType := file.Header["Content-Type"][0]
-	imgExt := strings.Index(contentType, "/")
-
-	return contentType[:imgExt]
 }
