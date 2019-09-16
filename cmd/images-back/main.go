@@ -88,6 +88,7 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 		fileContent := getFileContentType(file)
+		fmt.Printf("%T", fileContent)
 		log.Print(fileContent)
 		if fileContent != "image" {
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
