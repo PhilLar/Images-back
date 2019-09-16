@@ -87,10 +87,12 @@ func (env *Env) uploadHandler() echo.HandlerFunc {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
-
-		if getFileContentType(file) != "image" {
+		fileContent := getFileContentType(file)
+		log.Print(fileContent)
+		if fileContent != "image" {
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
+
 		imgTitle := c.FormValue("title") //name
 		ID, err := models.InsertImage(env.db, imgTitle, file.Filename)
 		if err != nil {
