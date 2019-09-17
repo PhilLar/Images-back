@@ -19,8 +19,6 @@ import (
 	"time"
 )
 
-
-
 var port int
 var db string
 
@@ -38,9 +36,8 @@ func init() {
 	flag.IntVar(&port, "port", defPort, "port to listen on")
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
-type Env struct {
-	db *sql.DB
-}
+
+
 
 func main() {
 	flag.Parse()
@@ -49,14 +46,15 @@ func main() {
 
 	dbPsql, err := models.NewDB(db)
 	if err != nil {
-		log.Print(err)
+		log.Panic(err)
 	}
 	defer dbPsql.Close()
 
 	env := &handlers.Env{DB: dbPsql}
 
-	e.POST("files", env.UploadHandler())
 	e.GET("images", env.ListImagesHandler())
+	e.POST("files", env.UploadHandler())
+	e.DELETE("images/:id", env.DeleteImageHandler())
 
 	e.Static("/", "static")
 	e.Static("/files", "files")

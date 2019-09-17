@@ -8,6 +8,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type Env struct {
 }
 
 type imageFile struct {
+	ImgID    int    `json:"id"`
 	ImgTitle string `json:"title"`
 	ImgURL   string `json:"url"`
 }
@@ -24,12 +26,10 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		file, err := c.FormFile("file")
 		if err != nil {
-			log.Print("HOW2")
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 		if getFileContentType(file) != "image" {
-			log.Print("HOW")
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 
@@ -50,6 +50,7 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 		outJSON := &imageFile{
 			ImgTitle: imgTitle,
 			ImgURL:   imgURL,
+			ImgID:    ID,
 		}
 		respHeader := c.Response().Header()
 		for i, j := range respHeader {
@@ -58,12 +59,25 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 		return c.JSON(http.StatusOK, outJSON)
 	}
 }
+func (env *Env) DeleteImageHandler() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		ID, err := strconv.Atoi(c.Param("id"))
+		if err != nil {
+			log.Print(err)
+			return echo.NewHTTPError(http.StatusBadRequest, "ID must be integer (BIGSERIAL)")
+		}
+		err = models.DeleteImage(env.DB, ID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		return c.NoContent(http.StatusNoContent)
+	}
+}
 
 func (env *Env) ListImagesHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		imgs, err := models.AllImages(env.DB)
 		if err != nil {
-			http.Error(c.Response(), http.StatusText(500), 500)
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 		}
@@ -71,8 +85,9 @@ func (env *Env) ListImagesHandler() echo.HandlerFunc {
 		for _, i := range imgs {
 			imgURL := c.Request().Host + "/files" + "/" + i.StoredName
 			outImgs = append(outImgs, &imageFile{
-				ImgTitle:	i.SourceName,
-				ImgURL:		imgURL,
+				ImgTitle: i.SourceName,
+				ImgURL:   imgURL,
+				ImgID:    i.ID,
 			})
 		}
 		return c.JSONPretty(http.StatusOK, outImgs, "  ")
