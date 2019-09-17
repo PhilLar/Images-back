@@ -2,19 +2,20 @@ package models
 
 import (
 	"database/sql"
+	"errors"
+	//"github.com/golang-migrate/migrate/source/file"
 	"io"
 	"log"
 	"mime/multipart"
-	//"net/http"
 	"os"
 	"strconv"
 	"strings"
 )
 
 type Image struct {
-	ID   		int
-	SourceName 	string
-	StoredName	string
+	ID         int
+	SourceName string
+	StoredName string
 }
 
 func InsertImage(db *sql.DB, imgTitle, fileName string) (int, error) {
@@ -54,7 +55,7 @@ func AllImages(db *sql.DB) ([]*Image, error) {
 	return imgs, nil
 }
 
-func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
+func SaveImage(file *multipart.FileHeader, ID int) (string, error) {
 	src, err := file.Open()
 	if err != nil {
 		log.Print(err)
@@ -71,15 +72,23 @@ func SaveImage(file *multipart.FileHeader, ID int) (string, error ){
 		return "", err
 	}
 	defer dst.Close()
-
 	// Copy
 	if _, err = io.Copy(dst, src); err != nil {
 		log.Print(err)
 		return "", err
 	}
-
 	return imgNewTitle, nil
 }
 
-
-
+func DeleteImage(db *sql.DB, ID int) error {
+	var storedName string
+	err := db.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
+	if err != nil {
+		return errors.New("image with such ID not found in database")
+	}
+	err = os.Remove("files/" + storedName)
+	if err != nil {
+		return errors.New("image with such ID not found in '/files' directory")
+	}
+	return nil
+}
