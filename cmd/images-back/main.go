@@ -37,9 +37,7 @@ func init() {
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
 
-type Env struct {
-	db *sql.DB
-}
+
 
 func main() {
 	flag.Parse()
