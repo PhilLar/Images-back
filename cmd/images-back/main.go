@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"flag"
-	//"fmt"
 	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
+	"net/http"
+
 	//"mime/multipart"
 	//"net/http"
 	"os"
@@ -55,6 +56,14 @@ func main() {
 	e.GET("images", env.ListImagesHandler())
 	e.POST("files", env.UploadHandler())
 	e.DELETE("images/:id", env.DeleteImageHandler())
+
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000"},
+		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+	}))
 
 	e.Static("/", "static")
 	e.Static("/files", "files")
