@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"database/sql"
+	//"database/sql"
 	"fmt"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
@@ -11,9 +11,14 @@ import (
 	"strconv"
 	"strings"
 )
+type ImagesStore interface {
+	InsertImage(imgTitle, fileName string) (int, error)
+	DeleteImage(ID int) error
+	AllImages() ([]*models.Image, error)
+}
 
 type Env struct {
-	DB *sql.DB
+	Store	ImagesStore
 }
 
 type imageFile struct {
@@ -22,22 +27,23 @@ type imageFile struct {
 	ImgURL   string `json:"url"`
 }
 
+
 func (env *Env) UploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)1")
 		}
 		if getFileContentType(file) != "image" {
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, getFileContentType(file))
 		}
 
 		imgTitle := c.FormValue("title") //name
-		ID, err := models.InsertImage(env.DB, imgTitle, file.Filename)
+		ID, err := env.Store.InsertImage(imgTitle, file.Filename)
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)3")
 		}
 
 		imgNewTitle, err := models.SaveImage(file, ID)
@@ -66,7 +72,7 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "ID must be integer (BIGSERIAL)")
 		}
-		err = models.DeleteImage(env.DB, ID)
+		err = env.Store.DeleteImage(ID)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
@@ -76,7 +82,7 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 
 func (env *Env) ListImagesHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		imgs, err := models.AllImages(env.DB)
+		imgs, err := env.Store.AllImages()
 		if err != nil {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")

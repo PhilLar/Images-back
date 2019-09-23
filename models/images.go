@@ -3,6 +3,8 @@ package models
 import (
 	"database/sql"
 	"errors"
+	//"runtime/debug"
+
 	//"github.com/golang-migrate/migrate/source/file"
 	"io"
 	"log"
@@ -18,23 +20,27 @@ type Image struct {
 	StoredName string
 }
 
-func InsertImage(db *sql.DB, imgTitle, fileName string) (int, error) {
+type Store struct {
+	*sql.DB
+}
+
+func(s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	var ID int
-	err := db.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
+	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
 		return -1, err
 	}
 	imgExt := strings.LastIndex(fileName, ".")
 	imgNewTitle := strconv.Itoa(ID) + fileName[imgExt:]
-	_, err = db.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
+	_, err = s.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
 	if err != nil {
 		return -1, err
 	}
 	return ID, nil
 }
 
-func AllImages(db *sql.DB) ([]*Image, error) {
-	rows, err := db.Query("SELECT * FROM images")
+func(s *Store) AllImages() ([]*Image, error) {
+	rows, err := s.Query("SELECT * FROM images")
 	if err != nil {
 		return nil, err
 	}
@@ -80,9 +86,9 @@ func SaveImage(file *multipart.FileHeader, ID int) (string, error) {
 	return imgNewTitle, nil
 }
 
-func DeleteImage(db *sql.DB, ID int) error {
+func(s *Store) DeleteImage(ID int) error {
 	var storedName string
-	err := db.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
+	err := s.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
 	if err != nil {
 		return errors.New("image with such ID not found in database")
 	}

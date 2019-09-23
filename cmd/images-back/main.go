@@ -50,8 +50,7 @@ func main() {
 		log.Panic(err)
 	}
 	defer dbPsql.Close()
-
-	env := &handlers.Env{DB: dbPsql}
+	env := &handlers.Env{Store: dbPsql}
 
 	e.GET("images", env.ListImagesHandler())
 	e.POST("files", env.UploadHandler())
