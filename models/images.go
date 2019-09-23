@@ -24,6 +24,10 @@ type Store struct {
 	*sql.DB
 }
 
+type FilesSystem struct {
+	Root	string
+}
+
 func(s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	var ID int
 	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
@@ -61,7 +65,7 @@ func(s *Store) AllImages() ([]*Image, error) {
 	return imgs, nil
 }
 
-func SaveImage(file *multipart.FileHeader, ID int) (string, error) {
+func(fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, error) {
 	src, err := file.Open()
 	if err != nil {
 		log.Print(err)

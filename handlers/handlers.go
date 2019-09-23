@@ -11,14 +11,20 @@ import (
 	"strconv"
 	"strings"
 )
+
 type ImagesStore interface {
 	InsertImage(imgTitle, fileName string) (int, error)
 	DeleteImage(ID int) error
 	AllImages() ([]*models.Image, error)
 }
 
+type FilesStore interface {
+	SaveImage(file *multipart.FileHeader, ID int) (string, error)
+}
+
 type Env struct {
-	Store	ImagesStore
+	Store		ImagesStore
+	FilesSystem	FilesStore
 }
 
 type imageFile struct {
@@ -46,7 +52,7 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)3")
 		}
 
-		imgNewTitle, err := models.SaveImage(file, ID)
+		imgNewTitle, err := env.FilesSystem.SaveImage(file, ID)
 		if err != nil {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")

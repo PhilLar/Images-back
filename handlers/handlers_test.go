@@ -27,28 +27,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//func TestUploadHandler(t *testing.T) {
-//	//tables := []struct {
-//	//	x		float64
-//	//	n 		int
-//	//	out		[]float64
-//	//}{
-//	//	{2.0, 10, []float64{1, 1.5, 1.4166, 1.4142}},
-//	//	{25.0, 10, []float64{1, 13, 7.4615, 5.4060, 5.0152, 5.0000}},
-//	//	{1.0, 10, []float64{1}},
-//	//}
-//	e := echo.New()
-//	req := httptest.NewRequest(http.MethodPost, "/files", strings.NewReader(userJSON))
-//	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-//	rec := httptest.NewRecorder()
-//	c := e.NewContext(req, rec)
-//	h := &handler{mockDB}
-//}
-
 type MockStore struct {
 
 }
-
 
 
 func(s *MockStore) AllImages() ([]*models.Image, error) {
@@ -77,6 +58,10 @@ func(s *MockStore)DeleteImage(ID int) error {
 
 func(s *MockStore) InsertImage(imgTitle, fileName string) (int, error){
 	return 1, nil
+}
+
+func(s *MockStore) SaveImage(file *multipart.FileHeader, ID int) (string, error){
+	return "ok", nil
 }
 
 //WORKS
@@ -115,9 +100,6 @@ func TestListImagesHandler(t *testing.T) {
 		assert.Equal(t, outImgs, template)
 	}
 }
-
-
-
 
 
 //WORKS
@@ -165,8 +147,9 @@ func TestUploadHandler(t *testing.T) {
 	b, w := Upload(values)
 
 	e := echo.New()
-	env := &Env{Store: &MockStore{}}
+	env := &Env{Store: &MockStore{}, FilesSystem:&MockStore{}}
 	req := httptest.NewRequest(http.MethodPost, "/files", &b)
+	req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
 	log.Print(w.FormDataContentType())
 
 	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -174,7 +157,7 @@ func TestUploadHandler(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	if assert.NoError(t, env.UploadHandler()(c)) {
-		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
 
