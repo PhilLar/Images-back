@@ -3,9 +3,6 @@ package models
 import (
 	"database/sql"
 	"errors"
-	//"runtime/debug"
-
-	//"github.com/golang-migrate/migrate/source/file"
 	"io"
 	"log"
 	"mime/multipart"

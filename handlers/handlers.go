@@ -27,7 +27,7 @@ type Env struct {
 	FilesSystem	FilesStore
 }
 
-type imageFile struct {
+type ImageFile struct {
 	ImgID    int    `json:"id"`
 	ImgTitle string `json:"title"`
 	ImgURL   string `json:"url"`
@@ -59,7 +59,7 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 		}
 
 		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
-		outJSON := &imageFile{
+		outJSON := &ImageFile{
 			ImgTitle: imgTitle,
 			ImgURL:   imgURL,
 			ImgID:    ID,
@@ -93,10 +93,10 @@ func (env *Env) ListImagesHandler() echo.HandlerFunc {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 		}
-		outImgs := make([]*imageFile, 0)
+		outImgs := make([]*ImageFile, 0)
 		for _, i := range imgs {
 			imgURL := c.Request().Host + "/files" + "/" + i.StoredName
-			outImgs = append(outImgs, &imageFile{
+			outImgs = append(outImgs, &ImageFile{
 				ImgTitle: i.SourceName,
 				ImgURL:   imgURL,
 				ImgID:    i.ID,

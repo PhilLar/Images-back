@@ -1,95 +1,126 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
-	"net/textproto"
-	"strings"
-
-	//"github.com/labstack/gommon/log"
 	"mime/multipart"
+	"net/textproto"
+	"os"
+	"strings"
 
 	//"bytes"
 	"encoding/json"
-	"io"
-
-	"os"
-	//"strings"
-
-	"net/http"
-	"net/http/httptest"
-
-	"testing"
+	//"fmt"
+	"github.com/PhilLar/Images-back/mocks"
+	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
-
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
+	gomock "github.com/golang/mock/gomock"
+	//"io"
+	//"log"
+	//"mime/multipart"
+	"net/http"
+	"net/http/httptest"
+	//"net/textproto"
+	//"os"
+	//"strings"
+	"testing"
 )
 
-type MockStore struct {
-
-}
-
-
-func(s *MockStore) AllImages() ([]*models.Image, error) {
-	imgs := []*models.Image{
-		&models.Image{
-			1,
-			"cat",
-			"1.jpg",
-		},
-		&models.Image{
-			2,
-			"dog",
-			"2.jpg",
-		},
-		&models.Image{
-			3,
-			"frog",
-			"3.jpg",
-		},
-	}
-	return imgs, nil
-}
-func(s *MockStore)DeleteImage(ID int) error {
-	return nil
-}
-
-func(s *MockStore) InsertImage(imgTitle, fileName string) (int, error){
-	return 1, nil
-}
-
-func(s *MockStore) SaveImage(file *multipart.FileHeader, ID int) (string, error){
-	return "ok", nil
-}
+//type MockStore struct {
+//
+//}
+//
+//
+//func(s *MockStore) AllImages() ([]*models.Image, error) {
+//	imgs := []*models.Image{
+//		&models.Image{
+//			1,
+//			"cat",
+//			"1.jpg",
+//		},
+//		&models.Image{
+//			2,
+//			"dog",
+//			"2.jpg",
+//		},
+//		&models.Image{
+//			3,
+//			"frog",
+//			"3.jpg",
+//		},
+//	}
+//	return imgs, nil
+//}
+//func(s *MockStore)DeleteImage(ID int) error {
+//	return nil
+//}
+//
+//func(s *MockStore) InsertImage(imgTitle, fileName string) (int, error){
+//	return 1, nil
+//}
+//
+//func(s *MockStore) SaveImage(file *multipart.FileHeader, ID int) (string, error){
+//	return "ok", nil
+//}
 
 //WORKS
 func TestListImagesHandler(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+
+
 	e := echo.New()
-	env := &Env{Store: &MockStore{}}
+	env := &handlers.Env{Store: mockImagesStore}
 	req := httptest.NewRequest(http.MethodGet, "/images", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	outImgs := make([]imageFile, 0)
-	outImgs = append(outImgs, imageFile{
+
+	imgs := []*models.Image{
+				&models.Image{
+					1,
+					"cat",
+					"1.jpg",
+				},
+				&models.Image{
+					2,
+					"dog",
+					"2.jpg",
+				},
+				&models.Image{
+					3,
+					"frog",
+					"3.jpg",
+				},
+			}
+
+	mockImagesStore.EXPECT().AllImages().Return(imgs, nil).Times(1)
+
+	var template []handlers.ImageFile
+	outImgs := make([]handlers.ImageFile, 0)
+	outImgs = append(outImgs, handlers.ImageFile{
 		ImgTitle: "cat",
 		ImgURL:   "example.com/files/1.jpg",
 		ImgID:    1,
 	})
-	outImgs = append(outImgs, imageFile{
+	outImgs = append(outImgs, handlers.ImageFile{
 		ImgTitle: "dog",
 		ImgURL:   "example.com/files/2.jpg",
 		ImgID:    2,
 	})
-	outImgs = append(outImgs, imageFile{
+	outImgs = append(outImgs, handlers.ImageFile{
 		ImgTitle: "frog",
 		ImgURL:   "example.com/files/3.jpg",
 		ImgID:    3,
 	})
 
-	var template []imageFile
+
 
 	if assert.NoError(t, env.ListImagesHandler()(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -104,8 +135,14 @@ func TestListImagesHandler(t *testing.T) {
 
 //WORKS
 func TestDeleteImageHandler(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+
+
 	e := echo.New()
-	env := &Env{Store: &MockStore{}}
+	env := &handlers.Env{Store: mockImagesStore}
 	req := httptest.NewRequest(http.MethodPost, "/images/:id", nil)
 
 	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -114,13 +151,14 @@ func TestDeleteImageHandler(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues("1")
 
+	mockImagesStore.EXPECT().DeleteImage(1).Return(nil).Times(1)
 
 	if assert.NoError(t, env.DeleteImageHandler()(c)) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	}
 }
 
-
+//
 func createMultipartFormData(t *testing.T, fieldName, fileName string) (bytes.Buffer, *multipart.Writer) {
 	var b bytes.Buffer
 	var err error
@@ -142,22 +180,40 @@ func TestUploadHandler(t *testing.T) {
 		"file":  mustOpen("cat.jpg"), // lets assume its this file
 		"title": strings.NewReader("that's the cat!"),
 	}
-
-	//b, w := createMultipartFormData(t, "file","cat.jpg")
 	b, w := Upload(values)
 
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+	mockFilesStore := mocks.NewMockFilesStore(mockCtrl)
+
 	e := echo.New()
-	env := &Env{Store: &MockStore{}, FilesSystem:&MockStore{}}
+	env := &handlers.Env{Store: mockImagesStore, FilesSystem: mockFilesStore}
 	req := httptest.NewRequest(http.MethodPost, "/files", &b)
 	req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
-	log.Print(w.FormDataContentType())
 
-	//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
+	mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).Times(1)
+	mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).Times(1)
+
+	var gotJSON handlers.ImageFile
+	expectedJSON := handlers.ImageFile{
+		ImgTitle: "that's the cat!",
+		ImgURL:   "example.com/files/1.jpg",
+		ImgID:    1,
+	}
+
 	if assert.NoError(t, env.UploadHandler()(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
+		log.Print(rec.Body.String())
+		err := json.Unmarshal(rec.Body.Bytes(), &gotJSON)
+		if err != nil {
+			t.Fatal("Opps")
+		}
+		assert.Equal(t, expectedJSON, gotJSON)
 	}
 }
 
@@ -191,7 +247,6 @@ func Upload(values map[string]io.Reader) (bytes.Buffer, *multipart.Writer) {
 				log.Fatal(err)
 			}
 		}
-		log.Print(fw)
 		if _, err := io.Copy(fw, r); err != nil {
 			log.Fatal(err)
 		}
