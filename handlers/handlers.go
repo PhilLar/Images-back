@@ -1,22 +1,34 @@
 package handlers
 
 import (
-	"database/sql"
+	//"database/sql"
 	"fmt"
-	"github.com/PhilLar/Images-back/models"
-	"github.com/labstack/echo"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/PhilLar/Images-back/models"
+	"github.com/labstack/echo"
 )
 
-type Env struct {
-	DB *sql.DB
+type ImagesStore interface {
+	InsertImage(imgTitle, fileName string) (int, error)
+	DeleteImage(ID int) error
+	AllImages() ([]*models.Image, error)
 }
 
-type imageFile struct {
+type FilesStore interface {
+	SaveImage(file *multipart.FileHeader, ID int) (string, error)
+}
+
+type Env struct {
+	Store       ImagesStore
+	FilesSystem FilesStore
+}
+
+type ImageFile struct {
 	ImgID    int    `json:"id"`
 	ImgTitle string `json:"title"`
 	ImgURL   string `json:"url"`
@@ -27,27 +39,27 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)1")
 		}
 		if getFileContentType(file) != "image" {
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, getFileContentType(file))
 		}
 
 		imgTitle := c.FormValue("title") //name
-		ID, err := models.InsertImage(env.DB, imgTitle, file.Filename)
+		ID, err := env.Store.InsertImage(imgTitle, file.Filename)
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)3")
 		}
 
-		imgNewTitle, err := models.SaveImage(file, ID)
+		imgNewTitle, err := env.FilesSystem.SaveImage(file, ID)
 		if err != nil {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
 		}
 
 		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
-		outJSON := &imageFile{
+		outJSON := &ImageFile{
 			ImgTitle: imgTitle,
 			ImgURL:   imgURL,
 			ImgID:    ID,
@@ -66,7 +78,7 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "ID must be integer (BIGSERIAL)")
 		}
-		err = models.DeleteImage(env.DB, ID)
+		err = env.Store.DeleteImage(ID)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
@@ -76,15 +88,15 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 
 func (env *Env) ListImagesHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		imgs, err := models.AllImages(env.DB)
+		imgs, err := env.Store.AllImages()
 		if err != nil {
 			log.Print(err)
 			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 		}
-		outImgs := make([]*imageFile, 0)
+		outImgs := make([]*ImageFile, 0)
 		for _, i := range imgs {
 			imgURL := c.Request().Host + "/files" + "/" + i.StoredName
-			outImgs = append(outImgs, &imageFile{
+			outImgs = append(outImgs, &ImageFile{
 				ImgTitle: i.SourceName,
 				ImgURL:   imgURL,
 				ImgID:    i.ID,
