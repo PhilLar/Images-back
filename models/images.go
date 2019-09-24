@@ -22,10 +22,10 @@ type Store struct {
 }
 
 type FilesSystem struct {
-	Root	string
+	Root string
 }
 
-func(s *Store) InsertImage(imgTitle, fileName string) (int, error) {
+func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	var ID int
 	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
@@ -40,7 +40,7 @@ func(s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	return ID, nil
 }
 
-func(s *Store) AllImages() ([]*Image, error) {
+func (s *Store) AllImages() ([]*Image, error) {
 	rows, err := s.Query("SELECT * FROM images")
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func(s *Store) AllImages() ([]*Image, error) {
 	return imgs, nil
 }
 
-func(fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, error) {
+func (fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, error) {
 	src, err := file.Open()
 	if err != nil {
 		log.Print(err)
@@ -87,7 +87,7 @@ func(fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, err
 	return imgNewTitle, nil
 }
 
-func(s *Store) DeleteImage(ID int) error {
+func (s *Store) DeleteImage(ID int) error {
 	var storedName string
 	err := s.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
 	if err != nil {

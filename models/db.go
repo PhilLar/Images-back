@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -38,5 +39,5 @@ func NewDB(dataSourceName string) (*Store, error) {
 		log.Print(err)
 		return nil, err
 	}
-	return &Store{DB:db}, nil
+	return &Store{DB: db}, nil
 }

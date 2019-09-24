@@ -2,26 +2,25 @@ package handlers_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"net/textproto"
 	"os"
 	"strings"
-	"encoding/json"
-	"github.com/PhilLar/Images-back/mocks"
+	"testing"
+
 	"github.com/PhilLar/Images-back/handlers"
+	"github.com/PhilLar/Images-back/mocks"
 	"github.com/PhilLar/Images-back/models"
+	gomock "github.com/golang/mock/gomock"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
-	gomock "github.com/golang/mock/gomock"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
-
-
 
 //WORKS
 func TestListImagesHandler(t *testing.T) {
@@ -30,31 +29,29 @@ func TestListImagesHandler(t *testing.T) {
 
 	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
 
-
 	e := echo.New()
 	env := &handlers.Env{Store: mockImagesStore}
 	req := httptest.NewRequest(http.MethodGet, "/images", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-
 	imgs := []*models.Image{
-				&models.Image{
-					1,
-					"cat",
-					"1.jpg",
-				},
-				&models.Image{
-					2,
-					"dog",
-					"2.jpg",
-				},
-				&models.Image{
-					3,
-					"frog",
-					"3.jpg",
-				},
-			}
+		&models.Image{
+			1,
+			"cat",
+			"1.jpg",
+		},
+		&models.Image{
+			2,
+			"dog",
+			"2.jpg",
+		},
+		&models.Image{
+			3,
+			"frog",
+			"3.jpg",
+		},
+	}
 
 	mockImagesStore.EXPECT().AllImages().Return(imgs, nil).Times(1)
 
@@ -76,8 +73,6 @@ func TestListImagesHandler(t *testing.T) {
 		ImgID:    3,
 	})
 
-
-
 	if assert.NoError(t, env.ListImagesHandler()(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		err := json.Unmarshal(rec.Body.Bytes(), &template)
@@ -88,14 +83,12 @@ func TestListImagesHandler(t *testing.T) {
 	}
 }
 
-
 //WORKS
 func TestDeleteImageHandler(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
-
 
 	e := echo.New()
 	env := &handlers.Env{Store: mockImagesStore}
@@ -182,7 +175,6 @@ func CreateFormImagefile(fieldname, filename string, w *multipart.Writer) (io.Wr
 	return w.CreatePart(h)
 }
 
-
 func Upload(values map[string]io.Reader) (bytes.Buffer, *multipart.Writer) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
@@ -221,6 +213,3 @@ func mustOpen(f string) *os.File {
 	}
 	return r
 }
-
-
-

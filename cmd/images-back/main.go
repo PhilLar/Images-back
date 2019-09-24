@@ -3,19 +3,21 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
+
 	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
-	"net/http"
 
 	//"mime/multipart"
 	//"net/http"
 	"os"
 	"os/signal"
 	"strconv"
+
 	//"strings"
 	"time"
 )
@@ -38,8 +40,6 @@ func init() {
 	flag.StringVar(&db, "db", defDB, "database to connect to")
 }
 
-
-
 func main() {
 	flag.Parse()
 	e := echo.New()
@@ -51,8 +51,7 @@ func main() {
 	}
 	defer dbPsql.Close()
 	fs := &models.FilesSystem{"/files"}
-	env := &handlers.Env{Store: dbPsql, FilesSystem:fs}
-
+	env := &handlers.Env{Store: dbPsql, FilesSystem: fs}
 
 	e.GET("images", env.ListImagesHandler())
 	e.POST("files", env.UploadHandler())

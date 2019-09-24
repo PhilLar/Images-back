@@ -5,9 +5,10 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	models "github.com/PhilLar/Images-back/models"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockImagesStore is a mock of ImagesStore interface

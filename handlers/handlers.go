@@ -3,13 +3,14 @@ package handlers
 import (
 	//"database/sql"
 	"fmt"
-	"github.com/PhilLar/Images-back/models"
-	"github.com/labstack/echo"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/PhilLar/Images-back/models"
+	"github.com/labstack/echo"
 )
 
 type ImagesStore interface {
@@ -23,8 +24,8 @@ type FilesStore interface {
 }
 
 type Env struct {
-	Store		ImagesStore
-	FilesSystem	FilesStore
+	Store       ImagesStore
+	FilesSystem FilesStore
 }
 
 type ImageFile struct {
@@ -32,7 +33,6 @@ type ImageFile struct {
 	ImgTitle string `json:"title"`
 	ImgURL   string `json:"url"`
 }
-
 
 func (env *Env) UploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
