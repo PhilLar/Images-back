@@ -9,63 +9,19 @@ import (
 	"net/textproto"
 	"os"
 	"strings"
-
-	//"bytes"
 	"encoding/json"
-	//"fmt"
 	"github.com/PhilLar/Images-back/mocks"
 	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 	gomock "github.com/golang/mock/gomock"
-	//"io"
-	//"log"
-	//"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	//"net/textproto"
-	//"os"
-	//"strings"
 	"testing"
 )
 
-//type MockStore struct {
-//
-//}
-//
-//
-//func(s *MockStore) AllImages() ([]*models.Image, error) {
-//	imgs := []*models.Image{
-//		&models.Image{
-//			1,
-//			"cat",
-//			"1.jpg",
-//		},
-//		&models.Image{
-//			2,
-//			"dog",
-//			"2.jpg",
-//		},
-//		&models.Image{
-//			3,
-//			"frog",
-//			"3.jpg",
-//		},
-//	}
-//	return imgs, nil
-//}
-//func(s *MockStore)DeleteImage(ID int) error {
-//	return nil
-//}
-//
-//func(s *MockStore) InsertImage(imgTitle, fileName string) (int, error){
-//	return 1, nil
-//}
-//
-//func(s *MockStore) SaveImage(file *multipart.FileHeader, ID int) (string, error){
-//	return "ok", nil
-//}
+
 
 //WORKS
 func TestListImagesHandler(t *testing.T) {
