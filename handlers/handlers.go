@@ -39,23 +39,23 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 		file, err := c.FormFile("file")
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)1")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image): "+err.Error())
 		}
 		if getFileContentType(file) != "image" {
-			return echo.NewHTTPError(http.StatusBadRequest, getFileContentType(file))
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image), actual: "+getFileContentType(file))
 		}
 
 		imgTitle := c.FormValue("title") //name
 		ID, err := env.Store.InsertImage(imgTitle, file.Filename)
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)3")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)"+err.Error())
 		}
 
 		imgNewTitle, err := env.FilesSystem.SaveImage(file, ID)
 		if err != nil {
 			log.Print(err)
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide valid type of file (image)"+err.Error())
 		}
 
 		imgURL := c.Request().Host + c.Request().URL.String() + "/" + imgNewTitle
@@ -88,6 +88,9 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 
 func (env *Env) ListImagesHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		if c.Request().Method != "GET" {
+			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request [only method GET allowed]")
+		}
 		imgs, err := env.Store.AllImages()
 		if err != nil {
 			log.Print(err)
