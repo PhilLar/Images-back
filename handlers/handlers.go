@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	//"database/sql"
-	"fmt"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -63,10 +61,6 @@ func (env *Env) UploadHandler() echo.HandlerFunc {
 			ImgTitle: imgTitle,
 			ImgURL:   imgURL,
 			ImgID:    ID,
-		}
-		respHeader := c.Response().Header()
-		for i, j := range respHeader {
-			fmt.Println(i, j)
 		}
 		return c.JSON(http.StatusOK, outJSON)
 	}

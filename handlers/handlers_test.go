@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"mime/multipart"
@@ -14,6 +13,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/mocks"
@@ -125,7 +126,6 @@ func TestListImagesHandler(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-
 		mockImagesStore.EXPECT().AllImages().Return(nil, errors.New("Error while scanning db rows")).Times(1)
 
 		outImgs := make([]handlers.ImageFile, 0)
@@ -197,7 +197,7 @@ func TestDeleteImageHandler(t *testing.T) {
 		err := env.DeleteImageHandler()(c)
 		if assert.NotNil(t, env.DeleteImageHandler()(c)) {
 			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=ID must be integer (BIGSERIAL)" , err.Error())
+			assert.Equal(t, "code=400, message=ID must be integer (BIGSERIAL)", err.Error())
 		}
 	})
 
@@ -223,12 +223,11 @@ func TestDeleteImageHandler(t *testing.T) {
 		err := env.DeleteImageHandler()(c)
 		if assert.NotNil(t, env.DeleteImageHandler()(c)) {
 			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=image with such ID not found in database" , err.Error())
+			assert.Equal(t, "code=400, message=image with such ID not found in database", err.Error())
 		}
 	})
 
 }
-
 
 //
 func createMultipartFormData(t *testing.T, fieldName, fileName string) (bytes.Buffer, *multipart.Writer) {
@@ -248,11 +247,12 @@ func createMultipartFormData(t *testing.T, fieldName, fileName string) (bytes.Bu
 }
 
 func TestUploadHandler(t *testing.T) {
-	values := map[string]io.Reader{
-		"file":  mustOpen("cat.jpg"), // lets assume its this file
-		"title": strings.NewReader("that's the cat!"),
-	}
 	t.Run("returns StatusOK", func(t *testing.T) {
+		values := map[string]io.Reader{
+			"file":  mustOpen("cat.jpg"), // lets assume its this file
+			"title": strings.NewReader("that's the cat!"),
+		}
+
 		b, w := Upload(values)
 
 		mockCtrl := gomock.NewController(t)
@@ -306,58 +306,115 @@ func TestUploadHandler(t *testing.T) {
 		mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).AnyTimes()
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
 
+		err := env.UploadHandler()(c)
+		if assert.NotNil(t, err) {
+			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
+			assert.Equal(t, "code=400, message=Please provide valid type of file (image): request Content-Type isn't multipart/form-data", err.Error())
+		}
+	})
 
+	t.Run("returns BadRequest due to wrong Content-Type", func(t *testing.T) {
+		values := map[string]io.Reader{
+			"file":  mustOpen("cat.jpg"), // lets assume its this file
+			"title": strings.NewReader("that's the cat!"),
+		}
+
+		b, w := WrongUpload(values)
+
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+		mockFilesStore := mocks.NewMockFilesStore(mockCtrl)
+
+		e := echo.New()
+		env := &handlers.Env{Store: mockImagesStore, FilesSystem: mockFilesStore}
+		req := httptest.NewRequest(http.MethodPost, "/files", &b)
+		req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).AnyTimes()
+		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
+
+		//var gotJSON handlers.ImageFile
+		//expectedJSON := handlers.ImageFile{
+		//	ImgTitle: "that's the cat!",
+		//	ImgURL:   "example.com/files/1.jpg",
+		//	ImgID:    1,
+		//}
 
 		err := env.UploadHandler()(c)
 		if assert.NotNil(t, err) {
 			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=Please provide valid type of file (image): request Content-Type isn't multipart/form-data" , err.Error())
+			assert.Equal(t, "code=400, message=Please provide valid type of file (image), actual: nonImage", err.Error())
 		}
 	})
 
-	//t.Run("returns BadRequest due to wrong Content-type", func(t *testing.T) {
-	//	b, w := Upload(values)
-	//
-	//	mockCtrl := gomock.NewController(t)
-	//	defer mockCtrl.Finish()
-	//
-	//	mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
-	//	mockFilesStore := mocks.NewMockFilesStore(mockCtrl)
-	//
-	//	e := echo.New()
-	//	env := &handlers.Env{Store: mockImagesStore, FilesSystem: mockFilesStore}
-	//	req := httptest.NewRequest(http.MethodPost, "/files", &b)
-	//	req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
-	//
-	//	rec := httptest.NewRecorder()
-	//	c := e.NewContext(req, rec)
-	//
-	//	mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).AnyTimes()
-	//	mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
-	//
-	//	var gotJSON handlers.ImageFile
-	//	expectedJSON := handlers.ImageFile{
-	//		ImgTitle: "that's the cat!",
-	//		ImgURL:   "example.com/files/1.jpg",
-	//		ImgID:    1,
-	//	}
-	//
-	//	if assert.NoError(t, env.UploadHandler()(c)) {
-	//		assert.Equal(t, http.StatusOK, rec.Code)
-	//		log.Print(rec.Body.String())
-	//		err := json.Unmarshal(rec.Body.Bytes(), &gotJSON)
-	//		if err != nil {
-	//			t.Fatal("Opps")
-	//		}
-	//		assert.Equal(t, expectedJSON, gotJSON)
-	//	}
-	//
-	//	err := env.UploadHandler()(c)
-	//	if assert.NotNil(t, err) {
-	//		assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-	//		assert.Equal(t, "code=400, message=Please provide valid type of file (image): request Content-Type isn't multipart/form-data" , err.Error())
-	//	}
-	//})
+	t.Run("returns BadRequest due error while scanning db rows", func(t *testing.T) {
+		values := map[string]io.Reader{
+			"file":  mustOpen("cat.jpg"), // lets assume its this file
+			"title": strings.NewReader("that's the cat!"),
+		}
+
+		b, w := Upload(values)
+
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+		mockFilesStore := mocks.NewMockFilesStore(mockCtrl)
+
+		e := echo.New()
+		env := &handlers.Env{Store: mockImagesStore, FilesSystem: mockFilesStore}
+		req := httptest.NewRequest(http.MethodPost, "/files", &b)
+		req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(0, errors.New("Error while scanning db rows")).AnyTimes()
+		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
+
+		err := env.UploadHandler()(c)
+		if assert.NotNil(t, err) {
+			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
+			assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
+		}
+	})
+
+	t.Run("returns BadRequest due error while scanning db rows", func(t *testing.T) {
+		values := map[string]io.Reader{
+			"file":  mustOpen("cat.jpg"), // lets assume its this file
+			"title": strings.NewReader("that's the cat!"),
+		}
+
+		b, w := Upload(values)
+
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
+		mockFilesStore := mocks.NewMockFilesStore(mockCtrl)
+
+		e := echo.New()
+		env := &handlers.Env{Store: mockImagesStore, FilesSystem: mockFilesStore}
+		req := httptest.NewRequest(http.MethodPost, "/files", &b)
+		req.Header.Set(echo.HeaderContentType, w.FormDataContentType())
+
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
+		mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).AnyTimes()
+		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("", errors.New("Error while scanning db rows")).AnyTimes()
+
+		err := env.UploadHandler()(c)
+		if assert.NotNil(t, err) {
+			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
+			assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
+		}
+	})
 
 }
 
@@ -366,7 +423,7 @@ func CreateWrongFormImagefile(fieldname, filename string, w *multipart.Writer) (
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
 			fieldname, filename))
-	h.Set("Content-Type", "image/png")
+	h.Set("Content-Type", "nonImage/png")
 	return w.CreatePart(h)
 }
 

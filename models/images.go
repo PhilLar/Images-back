@@ -69,8 +69,6 @@ func (fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, er
 		return "", err
 	}
 	defer src.Close()
-	//a := src.(os.File)
-	//contentType, err := getFileContentType(*src.(os.File))
 	imgExt := strings.LastIndex(file.Filename, ".")
 	imgNewTitle := strconv.Itoa(ID) + file.Filename[imgExt:]
 	dst, err := os.Create("files/" + imgNewTitle)
