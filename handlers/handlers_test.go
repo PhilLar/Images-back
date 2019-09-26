@@ -215,7 +215,7 @@ func TestUploadHandler(t *testing.T) {
 			"title": strings.NewReader("that's the cat!"),
 		}
 
-		b, w := Upload(values)
+		b, w := Upload(values, "image/png")
 
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -276,7 +276,7 @@ func TestUploadHandler(t *testing.T) {
 			"title": strings.NewReader("that's the cat!"),
 		}
 
-		b, w := WrongUpload(values)
+		b, w := Upload(values, "nonImage/png")
 
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -307,7 +307,7 @@ func TestUploadHandler(t *testing.T) {
 			"title": strings.NewReader("that's the cat!"),
 		}
 
-		b, w := Upload(values)
+		b, w := Upload(values, "image/png")
 
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -337,7 +337,7 @@ func TestUploadHandler(t *testing.T) {
 			"title": strings.NewReader("that's the cat!"),
 		}
 
-		b, w := Upload(values)
+		b, w := Upload(values, "image/png")
 
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -363,16 +363,17 @@ func TestUploadHandler(t *testing.T) {
 
 }
 
-func CreateWrongFormImagefile(fieldname, filename string, w *multipart.Writer) (io.Writer, error) {
+
+func CreateFormImagefile(fieldname, filename string, w *multipart.Writer, contType string) (io.Writer, error) {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
 			fieldname, filename))
-	h.Set("Content-Type", "nonImage/png")
+	h.Set("Content-Type", contType)
 	return w.CreatePart(h)
 }
 
-func WrongUpload(values map[string]io.Reader) (bytes.Buffer, *multipart.Writer) {
+func Upload(values map[string]io.Reader, contType string) (bytes.Buffer, *multipart.Writer) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	for key, r := range values {
@@ -383,47 +384,7 @@ func WrongUpload(values map[string]io.Reader) (bytes.Buffer, *multipart.Writer) 
 		}
 		// Add an image file
 		if x, ok := r.(*os.File); ok {
-			if fw, err = CreateWrongFormImagefile(key, x.Name(), w); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			// Add other fields
-			if fw, err = w.CreateFormField(key); err != nil {
-				log.Fatal(err)
-			}
-		}
-		if _, err := io.Copy(fw, r); err != nil {
-			log.Fatal(err)
-		}
-
-	}
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
-	w.Close()
-	return b, w
-}
-
-func CreateFormImagefile(fieldname, filename string, w *multipart.Writer) (io.Writer, error) {
-	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition",
-		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			fieldname, filename))
-	h.Set("Content-Type", "image/png")
-	return w.CreatePart(h)
-}
-
-func Upload(values map[string]io.Reader) (bytes.Buffer, *multipart.Writer) {
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	for key, r := range values {
-		var fw io.Writer
-		var err error
-		if x, ok := r.(io.Closer); ok {
-			defer x.Close()
-		}
-		// Add an image file
-		if x, ok := r.(*os.File); ok {
-			if fw, err = CreateFormImagefile(key, x.Name(), w); err != nil {
+			if fw, err = CreateFormImagefile(key, x.Name(), w, contType); err != nil {
 				log.Fatal(err)
 			}
 		} else {
