@@ -82,9 +82,6 @@ func (env *Env) DeleteImageHandler() echo.HandlerFunc {
 
 func (env *Env) ListImagesHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if c.Request().Method != "GET" {
-			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request [only method GET allowed]")
-		}
 		imgs, err := env.Store.AllImages()
 		if err != nil {
 			log.Print(err)

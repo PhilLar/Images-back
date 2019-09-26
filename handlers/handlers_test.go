@@ -22,9 +22,10 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-//WORKS
+
 func TestListImagesHandler(t *testing.T) {
 	t.Run("returns StatusOK", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
@@ -76,44 +77,12 @@ func TestListImagesHandler(t *testing.T) {
 			ImgID:    3,
 		})
 
-		if assert.NoError(t, env.ListImagesHandler()(c)) {
-			assert.Equal(t, http.StatusOK, rec.Code)
-			err := json.Unmarshal(rec.Body.Bytes(), &template)
-			if err != nil {
-				t.Fatal("Opps")
-			}
-			assert.Equal(t, outImgs, template)
-		}
+		require.NoError(t, env.ListImagesHandler()(c))
+		assert.Equal(t, http.StatusOK, rec.Code)
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &template))
+		assert.Equal(t, outImgs, template)
 	})
-	t.Run("returns BadRequest [Method not GET]", func(t *testing.T) {
-		mockCtrl := gomock.NewController(t)
-		defer mockCtrl.Finish()
 
-		mockImagesStore := mocks.NewMockImagesStore(mockCtrl)
-
-		e := echo.New()
-		env := &handlers.Env{Store: mockImagesStore}
-		req := httptest.NewRequest(http.MethodGet, "/images", nil)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-
-		// TEST IF METHOD IS ONLY GET
-		// strange behaviour
-		reqP := httptest.NewRequest(http.MethodPost, "/images", nil)
-		recP := httptest.NewRecorder()
-		c = e.NewContext(reqP, recP)
-		//err := errors.New("dat err")
-
-		//assert.Error(t, env.ListImagesHandler()(c), "the exact error message")
-		err := env.ListImagesHandler()(c)
-		if !assert.NotNil(t, err) {
-			log.Print(err, "this", recP.Code)
-			assert.Equal(t, 200, recP.Code) // why ??
-			// here
-			assert.Equal(t, err.Error(), "code=400, message=Bad Request [only method GET allowed]")
-			//assert.Equal(t, 400, rec.Code)
-		}
-	})
 	t.Run("returns BadRequest due to scanError in AllImages()", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -126,7 +95,7 @@ func TestListImagesHandler(t *testing.T) {
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
-		mockImagesStore.EXPECT().AllImages().Return(nil, errors.New("Error while scanning db rows")).Times(1)
+		mockImagesStore.EXPECT().AllImages().Return(nil, errors.New("Error while scanning db rows"))
 
 		outImgs := make([]handlers.ImageFile, 0)
 		outImgs = append(outImgs, handlers.ImageFile{
@@ -146,17 +115,15 @@ func TestListImagesHandler(t *testing.T) {
 		})
 
 		err := env.ListImagesHandler()(c)
-		if !assert.NotNil(t, err) {
-			log.Print(err, "this", rec.Code)
-			assert.Equal(t, 200, rec.Code) // why ??
-			// here
-			assert.Equal(t, err.Error(), "code=400, message=Bad Request [only method GET allowed]")
-			//assert.Equal(t, 400, rec.Code)
-		}
+
+		log.Print(err, "this", rec.Code)
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, err.Error(), "code=400, message=Bad Request")
+
 	})
 }
 
-//WORKS
+
 func TestDeleteImageHandler(t *testing.T) {
 	t.Run("returns NoContent", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
@@ -168,17 +135,16 @@ func TestDeleteImageHandler(t *testing.T) {
 		env := &handlers.Env{Store: mockImagesStore}
 		req := httptest.NewRequest(http.MethodPost, "/images/:id", nil)
 
-		//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 		c.SetParamNames("id")
 		c.SetParamValues("1")
 
-		mockImagesStore.EXPECT().DeleteImage(1).Return(nil).Times(1)
+		mockImagesStore.EXPECT().DeleteImage(1).Return(nil)
 
-		if assert.NoError(t, env.DeleteImageHandler()(c)) {
-			assert.Equal(t, http.StatusNoContent, rec.Code)
-		}
+		require.NoError(t, env.DeleteImageHandler()(c))
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+
 	})
 
 	t.Run("Returns BadRequest on invalid id", func(t *testing.T) {
@@ -195,10 +161,8 @@ func TestDeleteImageHandler(t *testing.T) {
 		c.SetParamValues("")
 
 		err := env.DeleteImageHandler()(c)
-		if assert.NotNil(t, env.DeleteImageHandler()(c)) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=ID must be integer (BIGSERIAL)", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=ID must be integer (BIGSERIAL)", err.Error())
 	})
 
 	t.Run("Returns BadRequest on not found id", func(t *testing.T) {
@@ -221,10 +185,8 @@ func TestDeleteImageHandler(t *testing.T) {
 			AnyTimes()
 
 		err := env.DeleteImageHandler()(c)
-		if assert.NotNil(t, env.DeleteImageHandler()(c)) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=image with such ID not found in database", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=image with such ID not found in database", err.Error())
 	})
 
 }
@@ -279,15 +241,12 @@ func TestUploadHandler(t *testing.T) {
 			ImgID:    1,
 		}
 
-		if assert.NoError(t, env.UploadHandler()(c)) {
-			assert.Equal(t, http.StatusOK, rec.Code)
-			log.Print(rec.Body.String())
-			err := json.Unmarshal(rec.Body.Bytes(), &gotJSON)
-			if err != nil {
-				t.Fatal("Opps")
-			}
-			assert.Equal(t, expectedJSON, gotJSON)
-		}
+		require.NoError(t, env.UploadHandler()(c))
+		assert.Equal(t, http.StatusOK, rec.Code)
+		log.Print(rec.Body.String())
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &gotJSON))
+		assert.Equal(t, expectedJSON, gotJSON)
+
 	})
 	t.Run("returns BadRequest due to empty req body", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
@@ -307,10 +266,8 @@ func TestUploadHandler(t *testing.T) {
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
 
 		err := env.UploadHandler()(c)
-		if assert.NotNil(t, err) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=Please provide valid type of file (image): request Content-Type isn't multipart/form-data", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=Please provide valid type of file (image): request Content-Type isn't multipart/form-data", err.Error())
 	})
 
 	t.Run("returns BadRequest due to wrong Content-Type", func(t *testing.T) {
@@ -339,10 +296,9 @@ func TestUploadHandler(t *testing.T) {
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
 
 		err := env.UploadHandler()(c)
-		if assert.NotNil(t, err) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=Please provide valid type of file (image), actual: nonImage", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=Please provide valid type of file (image), actual: nonImage", err.Error())
+
 	})
 
 	t.Run("returns BadRequest due error while scanning db rows", func(t *testing.T) {
@@ -371,10 +327,8 @@ func TestUploadHandler(t *testing.T) {
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
 
 		err := env.UploadHandler()(c)
-		if assert.NotNil(t, err) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
 	})
 
 	t.Run("returns BadRequest due error while scanning db rows", func(t *testing.T) {
@@ -403,10 +357,8 @@ func TestUploadHandler(t *testing.T) {
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("", errors.New("Error while scanning db rows")).AnyTimes()
 
 		err := env.UploadHandler()(c)
-		if assert.NotNil(t, err) {
-			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
-			assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
-		}
+		assert.Equal(t, 200, rec.Code)
+		assert.Equal(t, "code=400, message=Please provide valid type of file (image)Error while scanning db rows", err.Error())
 	})
 
 }
