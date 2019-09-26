@@ -338,13 +338,6 @@ func TestUploadHandler(t *testing.T) {
 		mockImagesStore.EXPECT().InsertImage("that's the cat!", "cat.jpg").Return(1, nil).AnyTimes()
 		mockFilesStore.EXPECT().SaveImage(gomock.Any(), 1).Return("1.jpg", nil).AnyTimes()
 
-		//var gotJSON handlers.ImageFile
-		//expectedJSON := handlers.ImageFile{
-		//	ImgTitle: "that's the cat!",
-		//	ImgURL:   "example.com/files/1.jpg",
-		//	ImgID:    1,
-		//}
-
 		err := env.UploadHandler()(c)
 		if assert.NotNil(t, err) {
 			assert.Equal(t, 200, rec.Code) //why 200?? not http.StatusBadRequest
