@@ -10,7 +10,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewDB(dataSourceName string) (*Store, error) {
+func NewDB(dataSourceName string, migrationSource string) (*Store, error) {
+	if migrationSource == "" {
+		migrationSource = "file://migrations"
+	}
 	db, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		log.Print(err)
@@ -28,7 +31,7 @@ func NewDB(dataSourceName string) (*Store, error) {
 	}
 	//defer driver.Close()
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
+		migrationSource,
 		"postgres", driver)
 	if err != nil {
 		log.Print(err)

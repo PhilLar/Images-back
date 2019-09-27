@@ -27,11 +27,14 @@ type FilesSystem struct {
 
 func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	var ID int
+	imgExt := strings.LastIndex(fileName, ".")
+	if imgExt == -1 {
+		return -1, errors.New("filename must contain extension")
+	}
 	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
 		return -1, err
 	}
-	imgExt := strings.LastIndex(fileName, ".")
 	imgNewTitle := strconv.Itoa(ID) + fileName[imgExt:]
 	_, err = s.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
 	if err != nil {
@@ -93,7 +96,7 @@ func (s *Store) DeleteImage(ID int) error {
 	}
 	err = os.Remove("files/" + storedName)
 	if err != nil {
-		return errors.New("image with such ID not found in '/files' directory")
+		return errors.New("image with such ID not found in '/files' directory "+storedName)
 	}
 	return nil
 }

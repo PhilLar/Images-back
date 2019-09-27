@@ -45,7 +45,7 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	dbPsql, err := models.NewDB(db)
+	dbPsql, err := models.NewDB(db, "")
 	if err != nil {
 		log.Panic(err)
 	}
