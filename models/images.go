@@ -9,20 +9,58 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 )
+
+
 
 type Image struct {
 	ID         int
 	SourceName string
 	StoredName string
 }
+type System interface {
+	Remove(name string) error
+}
 
 type Store struct {
-	*sql.DB
+	DB	*sql.DB
+	OS 	System
 }
 
 type FilesSystem struct {
 	Root string
+}
+
+type OS struct {}
+
+func(*OS) Remove(name string) error {
+	// System call interface forces us to know
+	// whether name is a file or directory.
+	// Try both: it is cheaper on average than
+	// doing a Stat plus the right one.
+	e := syscall.Unlink(name)
+	if e == nil {
+		return nil
+	}
+	e1 := syscall.Rmdir(name)
+	if e1 == nil {
+		return nil
+	}
+
+	// Both failed: figure out which error to return.
+	// OS X and Linux differ on whether unlink(dir)
+	// returns EISDIR, so can't use that. However,
+	// both agree that rmdir(file) returns ENOTDIR,
+	// so we can use that to decide which error is real.
+	// Rmdir might also return ENOTDIR if given a bad
+	// file path, like /etc/passwd/foo, but in that case,
+	// both errors will be ENOTDIR, so it's okay to
+	// use the error from unlink.
+	if e1 != syscall.ENOTDIR {
+		e = e1
+	}
+	return &os.PathError{"remove", name, e}
 }
 
 func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
@@ -31,12 +69,12 @@ func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	if imgExt == -1 {
 		return -1, errors.New("filename must contain extension")
 	}
-	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
+	err := s.DB.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
 		return -1, err
 	}
 	imgNewTitle := strconv.Itoa(ID) + fileName[imgExt:]
-	_, err = s.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
+	_, err = s.DB.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
 	if err != nil {
 		return -1, err
 	}
@@ -44,7 +82,7 @@ func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 }
 
 func (s *Store) AllImages() ([]*Image, error) {
-	rows, err := s.Query("SELECT * FROM images")
+	rows, err := s.DB.Query("SELECT * FROM images")
 	if err != nil {
 		return nil, err
 	}
@@ -90,11 +128,11 @@ func (fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, er
 
 func (s *Store) DeleteImage(ID int) error {
 	var storedName string
-	err := s.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
+	err := s.DB.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
 	if err != nil {
 		return errors.New("image with such ID not found in database")
 	}
-	err = os.Remove("files/" + storedName)
+	err = s.OS.Remove("files/" + storedName)
 	if err != nil {
 		return errors.New("image with such ID not found in '/files' directory "+storedName)
 	}

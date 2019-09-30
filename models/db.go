@@ -10,7 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func NewDB(dataSourceName string, migrationSource string) (*Store, error) {
+func NewDB(dataSourceName string, migrationSource string) (*sql.DB, error) {
 	if migrationSource == "" {
 		migrationSource = "file://migrations"
 	}
@@ -42,5 +42,5 @@ func NewDB(dataSourceName string, migrationSource string) (*Store, error) {
 		log.Print(err)
 		return nil, err
 	}
-	return &Store{DB: db}, nil
+	return db, nil
 }

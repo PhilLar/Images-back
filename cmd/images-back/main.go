@@ -51,7 +51,7 @@ func main() {
 	}
 	defer dbPsql.Close()
 	fs := &models.FilesSystem{"/files"}
-	env := &handlers.Env{Store: dbPsql, FilesSystem: fs}
+	env := &handlers.Env{Store: &models.Store{DB: dbPsql, OS: &models.OS{}}, FilesSystem: fs}
 
 	e.GET("images", env.ListImagesHandler())
 	e.POST("files", env.UploadHandler())

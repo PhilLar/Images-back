@@ -2,7 +2,9 @@ package models_test
 
 import (
 	"database/sql"
+	"github.com/PhilLar/Images-back/mocks"
 	"github.com/PhilLar/Images-back/models"
+	"github.com/golang/mock/gomock"
 	"log"
 	"strconv"
 	"strings"
@@ -35,10 +37,16 @@ func (s *StoreSuite) SetupSuite() {
 		s.T().Fatal(err)
 	}
 	s.db = db
-	s.store, err = models.NewDB(connString, "file://../migrations")
+	dbPsql, err := models.NewDB(connString, "file://../migrations")
 	if err != nil {
 		log.Printf(err.Error())
 	}
+
+	s.store = &models.Store{DB: dbPsql}
+	//s.store, err = models.NewDB(connString, "file://../migrations")
+	//if err != nil {
+	//	log.Printf(err.Error())
+	//}
 }
 
 func (s *StoreSuite) SetupTest() {
@@ -129,6 +137,7 @@ func (s *StoreSuite) TestInsertImage() {
 
 func (s *StoreSuite) TestDeleteImage() {
 	s.T().Run("Correct deletion", func(t *testing.T) {
+
 		testTitle := "mytitle"
 		testFileName := "cat.jpg"
 
@@ -142,6 +151,19 @@ func (s *StoreSuite) TestDeleteImage() {
 		if err != nil {
 			s.T().Error(err)
 		}
+
+
+		mockCtrl := gomock.NewController(&testing.T{})
+		defer mockCtrl.Finish()
+		mockSystem := mocks.NewMockSystem(mockCtrl)
+		s.store.OS = mockSystem
+
+
+		mockSystem.
+			EXPECT().
+			Remove(gomock.Any()).
+			Return(nil).
+			AnyTimes()
 
 		err = s.store.DeleteImage(ID)
 		if err != nil {
