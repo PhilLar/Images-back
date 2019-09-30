@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestListImagesHandler(t *testing.T) {
 	t.Run("returns StatusOK", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
@@ -122,7 +121,6 @@ func TestListImagesHandler(t *testing.T) {
 
 	})
 }
-
 
 func TestDeleteImageHandler(t *testing.T) {
 	t.Run("returns NoContent", func(t *testing.T) {
@@ -362,7 +360,6 @@ func TestUploadHandler(t *testing.T) {
 	})
 
 }
-
 
 func CreateFormImagefile(fieldname, filename string, w *multipart.Writer, contType string) (io.Writer, error) {
 	h := make(textproto.MIMEHeader)

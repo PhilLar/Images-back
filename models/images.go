@@ -12,8 +12,6 @@ import (
 	"syscall"
 )
 
-
-
 type Image struct {
 	ID         int
 	SourceName string
@@ -24,17 +22,17 @@ type System interface {
 }
 
 type Store struct {
-	DB	*sql.DB
-	OS 	System
+	DB *sql.DB
+	OS System
 }
 
 type FilesSystem struct {
 	Root string
 }
 
-type OS struct {}
+type OS struct{}
 
-func(*OS) Remove(name string) error {
+func (*OS) Remove(name string) error {
 	// System call interface forces us to know
 	// whether name is a file or directory.
 	// Try both: it is cheaper on average than
@@ -134,7 +132,7 @@ func (s *Store) DeleteImage(ID int) error {
 	}
 	err = s.OS.Remove("files/" + storedName)
 	if err != nil {
-		return errors.New("image with such ID not found in '/files' directory "+storedName)
+		return errors.New("image with such ID not found in '/files' directory " + storedName)
 	}
 	return nil
 }

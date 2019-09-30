@@ -2,13 +2,14 @@ package models_test
 
 import (
 	"database/sql"
-	"github.com/PhilLar/Images-back/mocks"
-	"github.com/PhilLar/Images-back/models"
-	"github.com/golang/mock/gomock"
 	"log"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/PhilLar/Images-back/mocks"
+	"github.com/PhilLar/Images-back/models"
+	"github.com/golang/mock/gomock"
 
 	// The "testify/suite" package is used to make the test suite
 	"github.com/stretchr/testify/suite"
@@ -127,11 +128,10 @@ func (s *StoreSuite) TestInsertImage() {
 		rowsCountAfter := len(imgs)
 
 		if rowsCountBefore != rowsCountAfter {
-			s.T().Errorf("there must be no row added, but the query returned %d new were", rowsCountBefore - rowsCountAfter)
+			s.T().Errorf("there must be no row added, but the query returned %d new were", rowsCountBefore-rowsCountAfter)
 		}
 
 	})
-
 
 }
 
@@ -152,12 +152,10 @@ func (s *StoreSuite) TestDeleteImage() {
 			s.T().Error(err)
 		}
 
-
 		mockCtrl := gomock.NewController(&testing.T{})
 		defer mockCtrl.Finish()
 		mockSystem := mocks.NewMockSystem(mockCtrl)
 		s.store.OS = mockSystem
-
 
 		mockSystem.
 			EXPECT().
@@ -183,8 +181,8 @@ func (s *StoreSuite) TestDeleteImage() {
 		}
 
 		if rowsCountBefore != rowsCountAfter {
-			s.T().Errorf("rows quantity before deletion and after one must be equal, but they aren't\n" +
-				"rowsCountBefore: %d\n" +
+			s.T().Errorf("rows quantity before deletion and after one must be equal, but they aren't\n"+
+				"rowsCountBefore: %d\n"+
 				"rowsCountAfter: %d\n", rowsCountBefore, rowsCountAfter)
 		}
 	})
@@ -197,7 +195,6 @@ func (s *StoreSuite) TestDeleteImage() {
 			s.T().Error(err)
 		}
 		rowsCountBefore := len(imgs)
-
 
 		err = s.store.DeleteImage(falseID)
 		expectedError := "image with such ID not found in database"
@@ -218,11 +215,9 @@ func (s *StoreSuite) TestDeleteImage() {
 		}
 
 		if rowsCountBefore != rowsCountAfter {
-			s.T().Errorf("rows quantity before deletion and after one must be equal, but they aren't\n" +
-				"rowsCountBefore: %d\n" +
+			s.T().Errorf("rows quantity before deletion and after one must be equal, but they aren't\n"+
+				"rowsCountBefore: %d\n"+
 				"rowsCountAfter: %d\n", rowsCountBefore, rowsCountAfter)
 		}
 	})
 }
-
-
