@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"database/sql"
 	"strconv"
 	"strings"
 	"testing"
@@ -24,7 +23,6 @@ type StoreSuite struct {
 		suite should be stored as attributes of the suite instance
 	*/
 	store *models.Store
-	db    *sql.DB
 }
 
 func (s *StoreSuite) SetupSuite() {
@@ -63,7 +61,7 @@ func TestStoreSuite(t *testing.T) {
 
 func (s *StoreSuite) TestInsertImage() {
 	// Create a bird through the store `CreateBird` method
-	s.T().Run("Correct insertion", func(t *testing.T) {
+	s.Run("Correct insertion", func() {
 		testTitle := "mytitle"
 		testFileName := "cat.jpg"
 		ID, err := s.store.InsertImage(testTitle, testFileName)
@@ -84,14 +82,14 @@ func (s *StoreSuite) TestInsertImage() {
 			s.Require().NoError(err)
 			imgs = append(imgs, img)
 		}
-		if err = rows.Err(); err != nil {
-			s.Require().NoError(err)
-		}
+
+		s.Require().NoError(rows.Err())
+
 		//////////////////////////////////////////////////////////////////
 
-		if !s.Equal(testTitle, imgs[0].SourceName) {
-			s.T().Errorf("incorrect sourceName, expected %s, actual is '%s'", testTitle, imgs[0].SourceName)
-		}
+		s.Equalf(testTitle, imgs[0].SourceName,
+			"incorrect sourceName, expected %s, actual is '%s'", testTitle, imgs[0].SourceName)
+
 
 		imgExt := strings.LastIndex(testFileName, ".")
 		expectedStoredName := strconv.Itoa(imgs[0].ID) + testFileName[imgExt:]
@@ -100,7 +98,7 @@ func (s *StoreSuite) TestInsertImage() {
 			"incorrect storedName, expected %s, actual is '%s'", expectedStoredName, imgs[0].StoredName)
 	})
 
-	s.T().Run("incorrect insertion due to passing filename without extension", func(t *testing.T) {
+	s.Run("incorrect insertion due to passing filename without extension", func() {
 		testTitle := "mytitle"
 		testFileName := "catjpg"
 		expectedError := errors.New("filename must contain extension")
@@ -116,7 +114,7 @@ func (s *StoreSuite) TestInsertImage() {
 }
 
 func (s *StoreSuite) TestDeleteImage() {
-	s.T().Run("Correct deletion", func(t *testing.T) {
+	s.Run("Correct deletion", func() {
 
 		testTitle := "mytitle"
 		testFileName := "cat.jpg"
@@ -133,16 +131,14 @@ func (s *StoreSuite) TestDeleteImage() {
 			s.Require().NoError(err)
 			imgs = append(imgs, img)
 		}
-		if err = rows.Err(); err != nil {
-			s.Require().NoError(err)
-		}
+		s.Require().NoError(rows.Err())
 		//////////////////////////////////////////////////////////////////
 		rowsCountBefore := len(imgs)
 
 		ID, err := s.store.InsertImage(testTitle, testFileName)
 		s.Require().NoError(err)
 
-		mockCtrl := gomock.NewController(&testing.T{})
+		mockCtrl := gomock.NewController(s.T())
 		defer mockCtrl.Finish()
 		mockSystem := mocks.NewMockSystem(mockCtrl)
 		s.store.OS = mockSystem
@@ -150,8 +146,7 @@ func (s *StoreSuite) TestDeleteImage() {
 		mockSystem.
 			EXPECT().
 			Remove(gomock.Any()).
-			Return(nil).
-			AnyTimes()
+			Return(nil)
 
 		err = s.store.DeleteImage(ID)
 		s.Require().NoError(err)
@@ -184,7 +179,7 @@ func (s *StoreSuite) TestDeleteImage() {
 				"rowsCountAfter: %d\n", rowsCountBefore, rowsCountAfter)
 	})
 
-	s.T().Run("Incorrect deletion", func(t *testing.T) {
+	s.Run("Incorrect deletion", func() {
 		falseID := -1
 
 		err := s.store.DeleteImage(falseID)
