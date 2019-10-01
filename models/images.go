@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 type Image struct {
@@ -33,32 +32,7 @@ type FilesSystem struct {
 type OS struct{}
 
 func (*OS) Remove(name string) error {
-	// System call interface forces us to know
-	// whether name is a file or directory.
-	// Try both: it is cheaper on average than
-	// doing a Stat plus the right one.
-	e := syscall.Unlink(name)
-	if e == nil {
-		return nil
-	}
-	e1 := syscall.Rmdir(name)
-	if e1 == nil {
-		return nil
-	}
-
-	// Both failed: figure out which error to return.
-	// OS X and Linux differ on whether unlink(dir)
-	// returns EISDIR, so can't use that. However,
-	// both agree that rmdir(file) returns ENOTDIR,
-	// so we can use that to decide which error is real.
-	// Rmdir might also return ENOTDIR if given a bad
-	// file path, like /etc/passwd/foo, but in that case,
-	// both errors will be ENOTDIR, so it's okay to
-	// use the error from unlink.
-	if e1 != syscall.ENOTDIR {
-		e = e1
-	}
-	return &os.PathError{"remove", name, e}
+	return os.Remove(name)
 }
 
 func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
