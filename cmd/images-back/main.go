@@ -45,13 +45,13 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
-	dbPsql, err := models.NewDB(db)
+	dbPsql, err := models.NewDB(db, "")
 	if err != nil {
 		log.Panic(err)
 	}
 	defer dbPsql.Close()
 	fs := &models.FilesSystem{"/files"}
-	env := &handlers.Env{Store: dbPsql, FilesSystem: fs}
+	env := &handlers.Env{Store: &models.Store{DB: dbPsql, OS: &models.OS{}}, FilesSystem: fs}
 
 	e.GET("images", env.ListImagesHandler())
 	e.POST("files", env.UploadHandler())

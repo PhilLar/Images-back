@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestListImagesHandler(t *testing.T) {
 	t.Run("returns StatusOK", func(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
@@ -116,13 +115,11 @@ func TestListImagesHandler(t *testing.T) {
 
 		err := env.ListImagesHandler()(c)
 
-		log.Print(err, "this", rec.Code)
 		assert.Equal(t, 200, rec.Code)
 		assert.Equal(t, err.Error(), "code=400, message=Bad Request")
 
 	})
 }
-
 
 func TestDeleteImageHandler(t *testing.T) {
 	t.Run("returns NoContent", func(t *testing.T) {
@@ -243,7 +240,6 @@ func TestUploadHandler(t *testing.T) {
 
 		require.NoError(t, env.UploadHandler()(c))
 		assert.Equal(t, http.StatusOK, rec.Code)
-		log.Print(rec.Body.String())
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &gotJSON))
 		assert.Equal(t, expectedJSON, gotJSON)
 
@@ -362,7 +358,6 @@ func TestUploadHandler(t *testing.T) {
 	})
 
 }
-
 
 func CreateFormImagefile(fieldname, filename string, w *multipart.Writer, contType string) (io.Writer, error) {
 	h := make(textproto.MIMEHeader)

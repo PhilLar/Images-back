@@ -16,24 +16,37 @@ type Image struct {
 	SourceName string
 	StoredName string
 }
+type System interface {
+	Remove(name string) error
+}
 
 type Store struct {
-	*sql.DB
+	DB *sql.DB
+	OS System
 }
 
 type FilesSystem struct {
 	Root string
 }
 
+type OS struct{}
+
+func (*OS) Remove(name string) error {
+	return os.Remove(name)
+}
+
 func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 	var ID int
-	err := s.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
+	imgExt := strings.LastIndex(fileName, ".")
+	if imgExt == -1 {
+		return -1, errors.New("filename must contain extension")
+	}
+	err := s.DB.QueryRow("INSERT INTO images(source_name) VALUES($1) RETURNING id", imgTitle).Scan(&ID)
 	if err != nil {
 		return -1, err
 	}
-	imgExt := strings.LastIndex(fileName, ".")
 	imgNewTitle := strconv.Itoa(ID) + fileName[imgExt:]
-	_, err = s.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
+	_, err = s.DB.Exec("UPDATE images SET stored_name=$1 WHERE id=$2", imgNewTitle, ID)
 	if err != nil {
 		return -1, err
 	}
@@ -41,7 +54,7 @@ func (s *Store) InsertImage(imgTitle, fileName string) (int, error) {
 }
 
 func (s *Store) AllImages() ([]*Image, error) {
-	rows, err := s.Query("SELECT * FROM images")
+	rows, err := s.DB.Query("SELECT * FROM images")
 	if err != nil {
 		return nil, err
 	}
@@ -87,13 +100,13 @@ func (fs *FilesSystem) SaveImage(file *multipart.FileHeader, ID int) (string, er
 
 func (s *Store) DeleteImage(ID int) error {
 	var storedName string
-	err := s.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
+	err := s.DB.QueryRow("DELETE FROM images WHERE id=$1 RETURNING stored_name", ID).Scan(&storedName)
 	if err != nil {
 		return errors.New("image with such ID not found in database")
 	}
-	err = os.Remove("files/" + storedName)
+	err = s.OS.Remove("files/" + storedName)
 	if err != nil {
-		return errors.New("image with such ID not found in '/files' directory")
+		return errors.New("image with such ID not found in '/files' directory " + storedName)
 	}
 	return nil
 }
