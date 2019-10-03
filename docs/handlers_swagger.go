@@ -1,6 +1,5 @@
 package docs
 
-
 import "github.com/PhilLar/Images-back/handlers"
 
 // swagger:route POST /files files-tag idOfFilesEndpoint
@@ -15,5 +14,5 @@ type filesResponseWrapper struct {
 	// in:body
 	Image struct {
 		Body handlers.ImageFile
-	}	`json:"image"`
+	} `json:"image"`
 }

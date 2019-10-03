@@ -90,7 +90,6 @@ func (s *StoreSuite) TestInsertImage() {
 		s.Equalf(testTitle, imgs[0].SourceName,
 			"incorrect sourceName, expected %s, actual is '%s'", testTitle, imgs[0].SourceName)
 
-
 		imgExt := strings.LastIndex(testFileName, ".")
 		expectedStoredName := strconv.Itoa(imgs[0].ID) + testFileName[imgExt:]
 
