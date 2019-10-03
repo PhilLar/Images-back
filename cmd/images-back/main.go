@@ -5,12 +5,14 @@ import (
 	"flag"
 	"net/http"
 
+	"github.com/PhilLar/Images-back/docs"
 	"github.com/PhilLar/Images-back/handlers"
 	"github.com/PhilLar/Images-back/models"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"
 	_ "github.com/lib/pq"
+	"github.com/pdrum/swagger-automation/api"
 
 	//"mime/multipart"
 	//"net/http"

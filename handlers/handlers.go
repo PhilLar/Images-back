@@ -26,11 +26,14 @@ type Env struct {
 	FilesSystem FilesStore
 }
 
+
 type ImageFile struct {
 	ImgID    int    `json:"id"`
 	ImgTitle string `json:"title"`
 	ImgURL   string `json:"url"`
 }
+
+
 
 func (env *Env) UploadHandler() echo.HandlerFunc {
 	return func(c echo.Context) error {

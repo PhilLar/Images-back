@@ -1,0 +1,25 @@
+basePath: /
+consumes:
+- application/json
+host: some-url.com
+info:
+  description: Documentation of our awesome API.
+  title: awesome.
+  version: 1.0.0
+paths:
+  /files:
+    post:
+      operationId: idOfFilesEndpoint
+      responses:
+        "200":
+          $ref: '#/responses/ImageFile'
+        "400":
+          $ref: '#/responses/HTTPError'
+      summary: files does some amazing stuff.
+      tags:
+      - files-tag
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"
