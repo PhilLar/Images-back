@@ -1,25 +1,106 @@
 basePath: /
 consumes:
 - application/json
+definitions:
+  ImageFile:
+    properties:
+      id:
+        format: int64
+        type: integer
+        x-go-name: ImgID
+      title:
+        type: string
+        x-go-name: ImgTitle
+      url:
+        type: string
+        x-go-name: ImgURL
+    type: object
+    x-go-package: github.com/PhilLar/Images-back/handlers
 host: some-url.com
 info:
-  description: Documentation of our awesome API.
-  title: awesome.
+  description: Documentation of our Images-back API.
+  title: Images-back.
   version: 1.0.0
 paths:
   /files:
     post:
+      consumes:
+      - application/json
       operationId: idOfFilesEndpoint
+      parameters:
+      - description: ImageFile object that needed to be added to the db.
+        in: body
+        name: Body
+        required: true
+        schema:
+          properties:
+            file_name:
+              type: string
+              x-go-name: FileName
+            title:
+              type: string
+              x-go-name: Title
+          type: object
+      produces:
+      - application/json
       responses:
         "200":
-          $ref: '#/responses/ImageFile'
+          $ref: '#/responses/filesResponse'
         "400":
-          $ref: '#/responses/HTTPError'
-      summary: files does some amazing stuff.
+          description: ' invalid type of file (image)'
+      summary: files upload your image to the server.
       tags:
-      - files-tag
+      - files
+  /images:
+    get:
+      operationId: idOfImagesEndpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          $ref: '#/responses/imagesResponse'
+        "400":
+          description: ' Bad Request'
+      summary: images endpoint lists all images contained in database.
+      tags:
+      - files
+  /images/{ID}:
+    delete:
+      operationId: idOfEndpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          $ref: '#/responses/imagesResponse'
+        "400":
+          description: ' ID must be integer (BIGSERIAL)'
+      summary: images/{ID} endpoint deletes an image by ID.
+      tags:
+      - files
 produces:
 - application/json
+responses:
+  filesResponse:
+    description: This text will appear as description of your response body.
+    schema:
+      properties:
+        id:
+          format: int64
+          type: integer
+          x-go-name: ImgID
+        title:
+          type: string
+          x-go-name: ImgTitle
+        url:
+          type: string
+          x-go-name: ImgURL
+      type: object
+  imagesResponse:
+    description: This text will appear as description of your response body.
+    schema:
+      items:
+        $ref: '#/definitions/ImageFile'
+      type: array
 schemes:
 - http
 swagger: "2.0"

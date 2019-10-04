@@ -1,6 +1,6 @@
-// Package classification awesome.
+// Package classification Images-back.
 //
-// Documentation of our awesome API.
+// Documentation of our Images-back API.
 //
 //     Schemes: http
 //     BasePath: /
