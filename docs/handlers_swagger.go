@@ -29,8 +29,8 @@ type filesParamsWrapper struct {
 	// in: body
 	// Required: true
 	Body struct {
-		Title		string	`json:"title"`
-		FileName	string	`json:"file_name"`
+		Title    string `json:"title"`
+		FileName string `json:"file_name"`
 	}
 }
 
@@ -41,7 +41,6 @@ type filesParamsWrapper struct {
 // responses:
 //	 200: imagesResponse
 //   400: description: Bad Request
-
 
 // This text will appear as description of your response body.
 // swagger:response imagesResponse
@@ -58,4 +57,3 @@ type imagesResponseWrapper struct {
 //	 200: imagesResponse
 //   400: description: image with such ID not found in '/files' directory
 //   400: description: ID must be integer (BIGSERIAL)
-
