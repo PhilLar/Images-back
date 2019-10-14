@@ -21,7 +21,7 @@ require (
 	github.com/labstack/gommon v0.3.0
 	github.com/lib/pq v1.2.0
 	github.com/mailru/easyjson v0.7.0 // indirect
-	github.com/pdrum/swagger-automation v0.0.0-20190629163613-c8c7c80ba858
+	github.com/pdrum/swagger-automation v0.0.0-20190629163613-c8c7c80ba858 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/common v0.7.0 // indirect
 	github.com/prometheus/procfs v0.0.5 // indirect
