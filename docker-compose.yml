@@ -1,0 +1,12 @@
+version: "3"
+services:
+  postgres:
+    image: postgres
+    container_name: pg-docker
+    ports:
+      - 5000:5000
+  images-back:
+    image: images-back
+    container_name: competent_poitras
+    ports:
+      - 8080:8080
