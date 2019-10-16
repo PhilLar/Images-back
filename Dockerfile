@@ -31,6 +31,9 @@ COPY --from=builder /app/images-back /bin/
 COPY --from=builder /app/files /bin/files/
 
 # Copy the source from the current directory to the Working Directory inside the container
+COPY --from=builder /app/files /files/
+
+# Copy the source from the current directory to the Working Directory inside the container
 COPY --from=builder /app/migrations /bin/migrations/
 
 # Copy the source from the current directory to the Working Directory inside the container
