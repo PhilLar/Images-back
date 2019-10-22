@@ -28,13 +28,7 @@ FROM alpine:latest
 COPY --from=builder /app/images-back /bin/
 
 # Copy the source from the current directory to the Working Directory inside the container
-COPY --from=builder /app/files /bin/files/
-
-# Copy the source from the current directory to the Working Directory inside the container
 COPY --from=builder /app/files /files/
-
-# Copy the source from the current directory to the Working Directory inside the container
-COPY --from=builder /app/migrations /bin/migrations/
 
 # Copy the source from the current directory to the Working Directory inside the container
 COPY --from=builder /app/migrations /migrations/
@@ -46,4 +40,4 @@ COPY --from=builder /app/static /bin/static/
 EXPOSE 8080
 
 # Command to run the executable
-CMD ["/bin/images-back"]
+ENTRYPOINT ["/bin/images-back"]

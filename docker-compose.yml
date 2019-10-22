@@ -2,7 +2,6 @@ version: "2"
 services:
   postgres:
     image: postgres
-    container_name: pg-docker
     environment:
       POSTGRES_USER: images
       POSTGRES_PASSWORD: images_go
@@ -10,10 +9,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - 5000:5000
+      - 5432:5432
   images-back:
     image: images-back
-    container_name: competent_poitras
     depends_on: 
       - postgres
     environment:
